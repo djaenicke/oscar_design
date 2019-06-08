@@ -56,7 +56,7 @@
 									<listOptionValue builtIn="false" value="../utilities"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.files.401551957" name="Include files (-include)" superClass="gnu.cpp.compiler.option.include.files"/>
-								<option id="com.crt.advproject.cpp.exe.debug.option.optimization.level.1760201486" name="Optimization Level" superClass="com.crt.advproject.cpp.exe.debug.option.optimization.level"/>
+								<option id="com.crt.advproject.cpp.exe.debug.option.optimization.level.1760201486" name="Optimization Level" superClass="com.crt.advproject.cpp.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.general" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.optimization.flags.703145773" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-fno-common" valueType="string"/>
 								<option id="com.crt.advproject.cpp.exe.debug.option.debugging.level.1701603422" name="Debug Level" superClass="com.crt.advproject.cpp.exe.debug.option.debugging.level"/>
 								<option id="gnu.cpp.compiler.option.debugging.other.1152705243" name="Other debugging flags" superClass="gnu.cpp.compiler.option.debugging.other"/>
@@ -121,7 +121,7 @@
 									<listOptionValue builtIn="false" value="../utilities"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.files.1874447520" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files"/>
-								<option id="com.crt.advproject.gcc.exe.debug.option.optimization.level.311775039" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.debug.option.optimization.level"/>
+								<option id="com.crt.advproject.gcc.exe.debug.option.optimization.level.311775039" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.debug.option.optimization.level" value="gnu.c.optimization.level.general" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.optimization.flags.1209346254" name="Other optimization flags" superClass="gnu.c.compiler.option.optimization.flags" value="-fno-common" valueType="string"/>
 								<option id="com.crt.advproject.gcc.exe.debug.option.debugging.level.1741178885" name="Debug Level" superClass="com.crt.advproject.gcc.exe.debug.option.debugging.level"/>
 								<option id="gnu.c.compiler.option.debugging.other.161433419" name="Other debugging flags" superClass="gnu.c.compiler.option.debugging.other"/>
@@ -154,7 +154,7 @@
 								<option id="com.crt.advproject.gas.hdrlib.1901908058" name="Library headers" superClass="com.crt.advproject.gas.hdrlib" value="com.crt.advproject.gas.hdrlib.newlibnano" valueType="enumerated"/>
 								<option id="com.crt.advproject.gas.specs.1357901804" name="Specs" superClass="com.crt.advproject.gas.specs" value="com.crt.advproject.gas.specs.newlibnano" valueType="enumerated"/>
 								<option id="com.crt.advproject.gas.arch.1426626202" name="Architecture" superClass="com.crt.advproject.gas.arch" value="com.crt.advproject.gas.target.cm4" valueType="enumerated"/>
-								<option id="gnu.both.asm.option.flags.crt.380403266" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt"/>
+								<option id="gnu.both.asm.option.flags.crt.380403266" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt" value="-c -x assembler-with-cpp -D__NEWLIB__" valueType="string"/>
 								<option id="gnu.both.asm.option.include.paths.1801114436" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../board"/>
 									<listOptionValue builtIn="false" value="../source"/>
@@ -379,6 +379,7 @@
 								<option id="com.crt.advproject.cpp.hdrlib.1612201539" name="Library headers" superClass="com.crt.advproject.cpp.hdrlib"/>
 								<option id="com.crt.advproject.cpp.config.166864116" name="Obsolete (Config)" superClass="com.crt.advproject.cpp.config"/>
 								<option id="com.crt.advproject.cpp.store.1208335792" name="Obsolete (Store)" superClass="com.crt.advproject.cpp.store"/>
+								<option id="com.crt.advproject.cpp.exe.release.option.optimization.level.891799416" superClass="com.crt.advproject.cpp.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.general" valueType="enumerated"/>
 								<inputType id="com.crt.advproject.compiler.cpp.input.1462411516" superClass="com.crt.advproject.compiler.cpp.input"/>
 							</tool>
 							<tool id="com.crt.advproject.gcc.exe.release.955098253" name="MCU C Compiler" superClass="com.crt.advproject.gcc.exe.release">
@@ -442,6 +443,7 @@
 								<option id="com.crt.advproject.gcc.securestate.874205151" name="TrustZone Project Type" superClass="com.crt.advproject.gcc.securestate"/>
 								<option id="com.crt.advproject.gcc.config.1869183380" name="Obsolete (Config)" superClass="com.crt.advproject.gcc.config"/>
 								<option id="com.crt.advproject.gcc.store.371474434" name="Obsolete (Store)" superClass="com.crt.advproject.gcc.store"/>
+								<option id="com.crt.advproject.gcc.exe.release.option.optimization.level.911800041" superClass="com.crt.advproject.gcc.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.general" valueType="enumerated"/>
 								<inputType id="com.crt.advproject.compiler.input.615383953" superClass="com.crt.advproject.compiler.input"/>
 							</tool>
 							<tool id="com.crt.advproject.gas.exe.release.620151412" name="MCU Assembler" superClass="com.crt.advproject.gas.exe.release">
@@ -449,7 +451,7 @@
 								<option id="com.crt.advproject.gas.hdrlib.395265889" name="Library headers" superClass="com.crt.advproject.gas.hdrlib" value="com.crt.advproject.gas.hdrlib.newlibnano" valueType="enumerated"/>
 								<option id="com.crt.advproject.gas.specs.1021189763" name="Specs" superClass="com.crt.advproject.gas.specs" value="com.crt.advproject.gas.specs.newlibnano" valueType="enumerated"/>
 								<option id="com.crt.advproject.gas.arch.58057395" name="Architecture" superClass="com.crt.advproject.gas.arch" value="com.crt.advproject.gas.target.cm4" valueType="enumerated"/>
-								<option id="gnu.both.asm.option.flags.crt.871050160" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt"/>
+								<option id="gnu.both.asm.option.flags.crt.871050160" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt" value="-c -x assembler-with-cpp -D__NEWLIB__" valueType="string"/>
 								<option id="gnu.both.asm.option.include.paths.1569189507" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="../board"/>
 									<listOptionValue builtIn="false" value="../source"/>
@@ -474,11 +476,11 @@
 							</tool>
 							<tool id="com.crt.advproject.link.cpp.exe.release.1040557372" name="MCU C++ Linker" superClass="com.crt.advproject.link.cpp.exe.release">
 								<option id="com.crt.advproject.link.cpp.thumb.211672881" name="Thumb mode" superClass="com.crt.advproject.link.cpp.thumb" value="true" valueType="boolean"/>
-								<option id="com.crt.advproject.link.memory.load.image.cpp.543483550" name="Plain load image" superClass="com.crt.advproject.link.memory.load.image.cpp" value="" valueType="string"/>
+								<option id="com.crt.advproject.link.memory.load.image.cpp.543483550" name="Plain load image" superClass="com.crt.advproject.link.memory.load.image.cpp" useByScannerDiscovery="false" value="" valueType="string"/>
 								<option id="com.crt.advproject.link.memory.heapAndStack.cpp.1165565723" name="Heap and Stack options" superClass="com.crt.advproject.link.memory.heapAndStack.cpp" value="&amp;Heap:Default;Post Data;Default&amp;Stack:Default;End;Default" valueType="string"/>
-								<option id="com.crt.advproject.link.memory.data.cpp.1507713908" name="Global data placement" superClass="com.crt.advproject.link.memory.data.cpp" value="" valueType="string"/>
-								<option id="com.crt.advproject.link.memory.sections.cpp.1066278432" name="Extra linker script input sections" superClass="com.crt.advproject.link.memory.sections.cpp" valueType="stringList"/>
-								<option id="com.crt.advproject.link.cpp.multicore.master.userobjs.1874234200" name="Slave Objects (not visible)" superClass="com.crt.advproject.link.cpp.multicore.master.userobjs" valueType="userObjs"/>
+								<option id="com.crt.advproject.link.memory.data.cpp.1507713908" name="Global data placement" superClass="com.crt.advproject.link.memory.data.cpp" useByScannerDiscovery="false" value="" valueType="string"/>
+								<option id="com.crt.advproject.link.memory.sections.cpp.1066278432" name="Extra linker script input sections" superClass="com.crt.advproject.link.memory.sections.cpp" useByScannerDiscovery="false" valueType="stringList"/>
+								<option id="com.crt.advproject.link.cpp.multicore.master.userobjs.1874234200" name="Slave Objects (not visible)" superClass="com.crt.advproject.link.cpp.multicore.master.userobjs" useByScannerDiscovery="false" valueType="userObjs"/>
 								<option id="com.crt.advproject.link.cpp.arch.2061285785" name="Architecture" superClass="com.crt.advproject.link.cpp.arch" value="com.crt.advproject.link.cpp.target.cm4" valueType="enumerated"/>
 								<option id="gnu.cpp.link.option.nostart.530498542" name="Do not use standard start files (-nostartfiles)" superClass="gnu.cpp.link.option.nostart"/>
 								<option id="gnu.cpp.link.option.nodeflibs.1443018218" name="Do not use default libraries (-nodefaultlibs)" superClass="gnu.cpp.link.option.nodeflibs"/>
@@ -514,7 +516,7 @@
 								<option id="com.crt.advproject.link.cpp.nanofloat.163983641" name="Enable printf float " superClass="com.crt.advproject.link.cpp.nanofloat"/>
 								<option id="com.crt.advproject.link.cpp.nanofloat.scanf.829170570" name="Enable scanf float " superClass="com.crt.advproject.link.cpp.nanofloat.scanf"/>
 								<option id="com.crt.advproject.link.cpp.toram.1638153786" name="Link application to RAM" superClass="com.crt.advproject.link.cpp.toram"/>
-								<option defaultValue="com.crt.advproject.heapAndStack.mcuXpressoStyle.cpp" id="com.crt.advproject.link.memory.heapAndStack.style.cpp.187809608" name="Heap and Stack placement" superClass="com.crt.advproject.link.memory.heapAndStack.style.cpp" valueType="enumerated"/>
+								<option defaultValue="com.crt.advproject.heapAndStack.mcuXpressoStyle.cpp" id="com.crt.advproject.link.memory.heapAndStack.style.cpp.187809608" name="Heap and Stack placement" superClass="com.crt.advproject.link.memory.heapAndStack.style.cpp" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="com.crt.advproject.link.cpp.stackOffset.570368744" name="Stack offset" superClass="com.crt.advproject.link.cpp.stackOffset"/>
 								<option id="com.crt.advproject.link.cpp.multicore.slave.655013714" name="Multicore configuration" superClass="com.crt.advproject.link.cpp.multicore.slave"/>
 								<option id="com.crt.advproject.link.cpp.multicore.master.105644631" name="Multicore master" superClass="com.crt.advproject.link.cpp.multicore.master"/>
@@ -726,4 +728,13 @@
 		<core>cm4</core>
 		<coreId>core0_MK64FN1M0xxx12</coreId>
 	</storageModule>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/car_controller"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/car_controller"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 </cproject>

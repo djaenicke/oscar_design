@@ -39,28 +39,34 @@
 #include "clock_config.h"
 #include "MK64F12.h"
 #include "fsl_debug_console.h"
-/* TODO: insert other include files here. */
 
-/* TODO: insert other definitions and declarations here. */
+#include "io_abstraction.h"
+#include "dc_motor.h"
 
-/*
- * @brief   Application entry point.
- */
-int main(void) {
-  	/* Init board hardware. */
-    BOARD_InitBootPins();
-    BOARD_InitBootClocks();
-    BOARD_InitBootPeripherals();
-  	/* Init FSL debug console. */
-	BOARD_InitDebugConsole();
+DC_Motor R_Motor;
+DC_Motor L_Motor;
 
-    PRINTF("Hello World\n");
+int main(void)
+{
+   /* Init board hardware. */
+   BOARD_InitBootPins();
+   BOARD_InitBootClocks();
+   BOARD_InitBootPeripherals();
+   /* Init FSL debug console. */
+   BOARD_InitDebugConsole();
 
-    /* Force the counter to be placed into memory. */
-    volatile static int i = 0 ;
-    /* Enter an infinite loop, just incrementing a counter. */
-    while(1) {
-        i++ ;
-    }
-    return 0 ;
+   PRINTF("Hello World\n");
+
+   Set_GPIO(BLUE_LED, LOW);
+
+   R_Motor.Set_Location(RIGHT_SIDE);
+   L_Motor.Set_Location(LEFT_SIDE);
+
+   R_Motor.Set_Direction(REVERSE);
+   R_Motor.Go();
+
+   L_Motor.Set_Direction(REVERSE);
+   L_Motor.Go();
+
+   while(1);
 }

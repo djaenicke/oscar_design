@@ -11,12 +11,12 @@
 const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
 {
     {PORTB, GPIOB, 21, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* BLUE_LED - Active Low */
-    {PORTC, GPIOC,  0, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_ENA */
-    {PORTC, GPIOC,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* MOTOR_ENB */
-    {PORTC, GPIOC,  3, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* MOTOR_IN1 */
-    {PORTC, GPIOC,  5, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN2 */
-    {PORTC, GPIOC,  7, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* MOTOR_IN3 */
-    {PORTB, GPIOB, 21, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* MOTOR_IN4 */
+    {PORTA, GPIOA,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_ENA */
+    {PORTC, GPIOC,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_ENB */
+    {PORTC, GPIOC,  3, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN1 */
+    {PORTD, GPIOD,  1, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN2 */
+    {PORTC, GPIOC,  4, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN3 */
+    {PORTD, GPIOD,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN4 */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
