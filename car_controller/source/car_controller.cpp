@@ -41,10 +41,7 @@
 #include "fsl_debug_console.h"
 
 #include "io_abstraction.h"
-#include "dc_motor.h"
-
-DC_Motor R_Motor;
-DC_Motor L_Motor;
+#include "motor_controls.h"
 
 int main(void)
 {
@@ -59,14 +56,7 @@ int main(void)
 
    Set_GPIO(BLUE_LED, LOW);
 
-   R_Motor.Set_Location(RIGHT_SIDE);
-   L_Motor.Set_Location(LEFT_SIDE);
-
-   R_Motor.Set_Direction(REVERSE);
-   R_Motor.Go();
-
-   L_Motor.Set_Direction(REVERSE);
-   L_Motor.Go();
+   Init_Motor_Controls();
 
    while(1);
 }

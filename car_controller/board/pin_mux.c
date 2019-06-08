@@ -49,7 +49,7 @@ product: Pins v4.0
  */
 void BOARD_InitBootPins(void)
 {
-   volatile uint8_t i;
+   uint8_t i;
 
    /* Enable Port Clock Gate Controls */
    CLOCK_EnableClock(kCLOCK_PortA);

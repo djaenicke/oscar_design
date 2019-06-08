@@ -11,7 +11,20 @@
 
 void DC_Motor::Set_Location(Location_T new_loc)
 {
-   loc = new_loc;
+   /* Set the motor position on the robot (right side or left side) */
+   switch (new_loc)
+   {
+      case LEFT_SIDE:
+         loc = LEFT_SIDE;
+         pwm_channel = kFTM_Chnl_7;
+         break;
+      case RIGHT_SIDE:
+         loc = RIGHT_SIDE;
+         pwm_channel = kFTM_Chnl_1;
+         break;
+      default:
+         assert(false);
+   }
 }
 
 void DC_Motor::Set_Direction(Direction_T new_dir)
@@ -53,9 +66,10 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
    }
 }
 
-void DC_Motor::Set_Speed(void)
+void DC_Motor::Set_Speed(uint8_t percent)
 {
-
+   FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, percent);
+   FTM_SetSoftwareTrigger(FTM0, true);
 }
 
 void DC_Motor::Stop(void)
@@ -74,19 +88,3 @@ void DC_Motor::Stop(void)
          assert(false);
    }
 }
-
-void DC_Motor::Go(void)
-{
-   switch (loc)
-   {
-      case LEFT_SIDE:
-         Set_GPIO(MOTOR_ENA, HIGH);
-         break;
-      case RIGHT_SIDE:
-         Set_GPIO(MOTOR_ENB, HIGH);
-         break;
-      default:
-         assert(false);
-   }
-}
-
