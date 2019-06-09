@@ -42,6 +42,9 @@
 
 #include "io_abstraction.h"
 #include "motor_controls.h"
+#include "servo.h"
+
+static Servo Obj_Sensor_Servo;
 
 int main(void)
 {
@@ -57,6 +60,5 @@ int main(void)
    Set_GPIO(BLUE_LED, LOW);
 
    Init_Motor_Controls();
-
-   while(1);
+   Obj_Sensor_Servo.Init();
 }

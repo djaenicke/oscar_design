@@ -43,17 +43,17 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.undef.280720110" name="Undefined symbols (-U)" superClass="gnu.cpp.compiler.option.preprocessor.undef"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1528345994" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.files.401551957" name="Include files (-include)" superClass="gnu.cpp.compiler.option.include.files"/>
 								<option id="com.crt.advproject.cpp.exe.debug.option.optimization.level.1760201486" name="Optimization Level" superClass="com.crt.advproject.cpp.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.general" valueType="enumerated"/>
@@ -108,17 +108,17 @@
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.undef.symbol.1245090918" name="Undefined symbols (-U)" superClass="gnu.c.compiler.option.preprocessor.undef.symbol"/>
 								<option id="gnu.c.compiler.option.include.paths.789076184" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.files.1874447520" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files"/>
 								<option id="com.crt.advproject.gcc.exe.debug.option.optimization.level.311775039" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.debug.option.optimization.level" value="gnu.c.optimization.level.general" valueType="enumerated"/>
@@ -156,17 +156,23 @@
 								<option id="com.crt.advproject.gas.arch.1426626202" name="Architecture" superClass="com.crt.advproject.gas.arch" value="com.crt.advproject.gas.target.cm4" valueType="enumerated"/>
 								<option id="gnu.both.asm.option.flags.crt.380403266" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt" value="-c -x assembler-with-cpp -D__NEWLIB__" valueType="string"/>
 								<option id="gnu.both.asm.option.include.paths.1801114436" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/arm-none-eabi"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/backward"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include-fixed"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include"/>
 								</option>
 								<option id="gnu.both.asm.option.warnings.nowarn.1508820356" name="Suppress warnings (-W)" superClass="gnu.both.asm.option.warnings.nowarn"/>
 								<option id="gnu.both.asm.option.version.637786431" name="Announce version (-v)" superClass="gnu.both.asm.option.version"/>
@@ -287,13 +293,13 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="component"/>
-						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="startup"/>
 						<entry excluding="FreeRTOS/portable/heap_1.c|FreeRTOS/portable/heap_2.c|FreeRTOS/portable/heap_3.c|FreeRTOS/portable/heap_5.c" flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="amazon-freertos"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="CMSIS"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="source"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="utilities"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="drivers"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="device"/>
+						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="startup"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="board"/>
 					</sourceEntries>
 				</configuration>
@@ -342,17 +348,17 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.undef.1505224515" name="Undefined symbols (-U)" superClass="gnu.cpp.compiler.option.preprocessor.undef"/>
 								<option id="gnu.cpp.compiler.option.include.paths.2114183833" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.files.643400226" name="Include files (-include)" superClass="gnu.cpp.compiler.option.include.files"/>
 								<option id="gnu.cpp.compiler.option.optimization.flags.1993974635" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" value="-fno-common" valueType="string"/>
@@ -379,7 +385,7 @@
 								<option id="com.crt.advproject.cpp.hdrlib.1612201539" name="Library headers" superClass="com.crt.advproject.cpp.hdrlib"/>
 								<option id="com.crt.advproject.cpp.config.166864116" name="Obsolete (Config)" superClass="com.crt.advproject.cpp.config"/>
 								<option id="com.crt.advproject.cpp.store.1208335792" name="Obsolete (Store)" superClass="com.crt.advproject.cpp.store"/>
-								<option id="com.crt.advproject.cpp.exe.release.option.optimization.level.891799416" superClass="com.crt.advproject.cpp.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.general" valueType="enumerated"/>
+								<option id="com.crt.advproject.cpp.exe.release.option.optimization.level.891799416" name="Optimization Level" superClass="com.crt.advproject.cpp.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.general" valueType="enumerated"/>
 								<inputType id="com.crt.advproject.compiler.cpp.input.1462411516" superClass="com.crt.advproject.compiler.cpp.input"/>
 							</tool>
 							<tool id="com.crt.advproject.gcc.exe.release.955098253" name="MCU C Compiler" superClass="com.crt.advproject.gcc.exe.release">
@@ -406,17 +412,17 @@
 								</option>
 								<option id="gnu.c.compiler.option.preprocessor.undef.symbol.844835003" name="Undefined symbols (-U)" superClass="gnu.c.compiler.option.preprocessor.undef.symbol"/>
 								<option id="gnu.c.compiler.option.include.paths.508067912" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.files.89134416" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files"/>
 								<option id="gnu.c.compiler.option.optimization.flags.721004422" name="Other optimization flags" superClass="gnu.c.compiler.option.optimization.flags" value="-fno-common" valueType="string"/>
@@ -443,7 +449,7 @@
 								<option id="com.crt.advproject.gcc.securestate.874205151" name="TrustZone Project Type" superClass="com.crt.advproject.gcc.securestate"/>
 								<option id="com.crt.advproject.gcc.config.1869183380" name="Obsolete (Config)" superClass="com.crt.advproject.gcc.config"/>
 								<option id="com.crt.advproject.gcc.store.371474434" name="Obsolete (Store)" superClass="com.crt.advproject.gcc.store"/>
-								<option id="com.crt.advproject.gcc.exe.release.option.optimization.level.911800041" superClass="com.crt.advproject.gcc.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.general" valueType="enumerated"/>
+								<option id="com.crt.advproject.gcc.exe.release.option.optimization.level.911800041" name="Optimization Level" superClass="com.crt.advproject.gcc.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.c.optimization.level.general" valueType="enumerated"/>
 								<inputType id="com.crt.advproject.compiler.input.615383953" superClass="com.crt.advproject.compiler.input"/>
 							</tool>
 							<tool id="com.crt.advproject.gas.exe.release.620151412" name="MCU Assembler" superClass="com.crt.advproject.gas.exe.release">
@@ -453,17 +459,23 @@
 								<option id="com.crt.advproject.gas.arch.58057395" name="Architecture" superClass="com.crt.advproject.gas.arch" value="com.crt.advproject.gas.target.cm4" valueType="enumerated"/>
 								<option id="gnu.both.asm.option.flags.crt.871050160" name="Assembler flags" superClass="gnu.both.asm.option.flags.crt" value="-c -x assembler-with-cpp -D__NEWLIB__" valueType="string"/>
 								<option id="gnu.both.asm.option.include.paths.1569189507" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="../board"/>
-									<listOptionValue builtIn="false" value="../source"/>
-									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="../drivers"/>
+									<listOptionValue builtIn="false" value="../component/uart"/>
+									<listOptionValue builtIn="false" value="../device"/>
+									<listOptionValue builtIn="false" value="../component/serial_manager"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/include"/>
 									<listOptionValue builtIn="false" value="../amazon-freertos/FreeRTOS/portable"/>
-									<listOptionValue builtIn="false" value="../drivers"/>
-									<listOptionValue builtIn="false" value="../device"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="../component/serial_manager"/>
-									<listOptionValue builtIn="false" value="../component/uart"/>
 									<listOptionValue builtIn="false" value="../utilities"/>
+									<listOptionValue builtIn="false" value="../CMSIS"/>
+									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../board"/>
+									<listOptionValue builtIn="false" value="../"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/arm-none-eabi"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/backward"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include-fixed"/>
+									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include"/>
 								</option>
 								<option id="gnu.both.asm.option.warnings.nowarn.1085609057" name="Suppress warnings (-W)" superClass="gnu.both.asm.option.warnings.nowarn"/>
 								<option id="gnu.both.asm.option.version.551827312" name="Announce version (-v)" superClass="gnu.both.asm.option.version"/>
@@ -581,13 +593,13 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="component"/>
-						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="startup"/>
 						<entry excluding="FreeRTOS/portable/heap_1.c|FreeRTOS/portable/heap_2.c|FreeRTOS/portable/heap_3.c|FreeRTOS/portable/heap_5.c" flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="amazon-freertos"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="CMSIS"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="source"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="utilities"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="drivers"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="device"/>
+						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="startup"/>
 						<entry flags="LOCAL|VALUE_WORKSPACE_PATH" kind="sourcePath" name="board"/>
 					</sourceEntries>
 				</configuration>
@@ -722,7 +734,7 @@
 	<storageModule moduleId="com.nxp.mcuxpresso.core.datamodels">
 		<sdkName>SDK_2.x_FRDM-K64F</sdkName>
 		<sdkVersion>2.5.0</sdkVersion>
-		<sdkComponents>middleware.freertos.MK64F12;middleware.template_application.freertos.MK64F12;platform.drivers.clock.MK64F12;device.MK64F12_CMSIS.MK64F12;platform.Include_common.MK64F12;platform.Include_core_cm4.MK64F12;platform.drivers.common.MK64F12;platform.drivers.uart.MK64F12;platform.drivers.adc16.MK64F12;platform.drivers.dspi.MK64F12;platform.drivers.gpio.MK64F12;platform.drivers.i2c.MK64F12;platform.drivers.port.MK64F12;platform.drivers.rtc.MK64F12;platform.drivers.smc.MK64F12;platform.drivers.ftm.MK64F12;component.serial_manager.MK64F12;component.serial_manager_uart.MK64F12;component.uart_adapter.MK64F12;utility.debug_console.MK64F12;device.MK64F12_startup.MK64F12;</sdkComponents>
+		<sdkComponents>middleware.freertos.MK64F12;middleware.template_application.freertos.MK64F12;platform.drivers.clock.MK64F12;device.MK64F12_CMSIS.MK64F12;platform.Include_common.MK64F12;platform.Include_core_cm4.MK64F12;platform.drivers.common.MK64F12;platform.drivers.uart.MK64F12;platform.drivers.adc16.MK64F12;platform.drivers.dspi.MK64F12;platform.drivers.gpio.MK64F12;platform.drivers.i2c.MK64F12;platform.drivers.port.MK64F12;platform.drivers.rtc.MK64F12;platform.drivers.smc.MK64F12;platform.drivers.ftm.MK64F12;component.serial_manager.MK64F12;component.serial_manager_uart.MK64F12;component.uart_adapter.MK64F12;utility.debug_console.MK64F12;device.MK64F12_startup.MK64F12;platform.utilities.assert.MK64F12;</sdkComponents>
 		<boardId>frdmk64f</boardId>
 		<package>MK64FN1M0VLL12</package>
 		<core>cm4</core>

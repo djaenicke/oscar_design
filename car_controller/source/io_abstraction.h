@@ -6,7 +6,6 @@
 #include "fsl_port.h"
 #include "fsl_gpio.h"
 
-#define LIGHT_SENSOR_CHANNEL (12)
 
 typedef enum
 {
@@ -34,6 +33,7 @@ typedef enum
     MOTOR_IN2,
     MOTOR_IN3,
     MOTOR_IN4,
+    SERVO,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

@@ -10,7 +10,7 @@
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
-#define PWM_FREQ 1000U
+#define PWM_FREQ 1000U /* Hz */
 
 static DC_Motor L_Motor;
 static DC_Motor R_Motor;
@@ -43,11 +43,5 @@ void Init_Motor_Controls(void)
 
    FTM_SetupPwm(FTM0, ftmParam, NUM_MOTORS, kFTM_EdgeAlignedPwm, PWM_FREQ, FTM_SOURCE_CLOCK);
    FTM_StartTimer(FTM0, kFTM_SystemClock);
-
-   /* TODO - Remove this test code */
-   L_Motor.Set_Direction(FORWARD);
-   R_Motor.Set_Direction(FORWARD);
-
-   L_Motor.Set_Speed(50);
-   R_Motor.Set_Speed(50);
 }
+

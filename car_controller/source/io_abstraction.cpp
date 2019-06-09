@@ -17,6 +17,7 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
     {PORTD, GPIOD,  1, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN2 */
     {PORTC, GPIOC,  4, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN3 */
     {PORTD, GPIOD,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN4 */
+    {PORTA, GPIOA,  1, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* SERVO */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
