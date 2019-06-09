@@ -88,3 +88,9 @@ void DC_Motor::Stop(void)
          assert(false);
    }
 }
+
+void DC_Motor::Freewheel(void)
+{
+   FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, 0);
+   FTM_SetSoftwareTrigger(FTM0, true);
+}

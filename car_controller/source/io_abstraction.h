@@ -34,6 +34,8 @@ typedef enum
     MOTOR_IN3,
     MOTOR_IN4,
     SERVO,
+    UART4_RX,
+    UART4_TX,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

@@ -43,6 +43,7 @@
 #include "io_abstraction.h"
 #include "motor_controls.h"
 #include "servo.h"
+#include "bluetooth_control.h"
 
 static Servo Obj_Sensor_Servo;
 
@@ -61,4 +62,11 @@ int main(void)
 
    Init_Motor_Controls();
    Obj_Sensor_Servo.Init();
+
+   Bluetooth_Serial_Open();
+
+   while(1)
+   {
+      Process_Bluetooth_Cmd();
+   }
 }

@@ -63,4 +63,9 @@ void BOARD_InitBootPins(void)
        PORT_SetPinMux(Pin_Cfgs[i].pbase, Pin_Cfgs[i].pin, Pin_Cfgs[i].mux);
    }
 
+   CLOCK_EnableClock(kCLOCK_Uart0);
+   CLOCK_EnableClock(kCLOCK_Uart4);
+
+   NVIC_SetPriority(UART0_RX_TX_IRQn, 5);
+   NVIC_SetPriority(UART4_RX_TX_IRQn, 3);
 }
