@@ -10,16 +10,17 @@
 
 const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
 {
-    {PORTB, GPIOB, 21, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, HIGH}, /* BLUE_LED - Active Low */
-    {PORTA, GPIOA,  2, kPORT_MuxAlt3,    kGPIO_DigitalOutput, LOW},  /* MOTOR_ENA - PWM */
-    {PORTC, GPIOC,  2, kPORT_MuxAlt4,    kGPIO_DigitalOutput, LOW},  /* MOTOR_ENB - PWM */
-    {PORTC, GPIOC,  3, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN1 */
-    {PORTD, GPIOD,  1, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN2 */
-    {PORTC, GPIOC,  4, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN3 */
-    {PORTD, GPIOD,  2, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* MOTOR_IN4 */
-    {PORTA, GPIOA,  1, kPORT_MuxAsGpio,  kGPIO_DigitalOutput, LOW},  /* SERVO */
-    {PORTC, GPIOC, 14, kPORT_MuxAlt3,    kGPIO_DigitalInput,  NA},   /* UART4_RX */
-    {PORTC, GPIOC, 15, kPORT_MuxAlt3,    kGPIO_DigitalOutput, NA},   /* UART4_TX */
+    {PORTB, GPIOB, 21, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, HIGH}, /* BLUE_LED - Active Low */
+    {PORTA, GPIOA,  2, kPORT_MuxAlt3,             kGPIO_DigitalOutput, LOW},  /* MOTOR_ENA - PWM */
+    {PORTC, GPIOC,  2, kPORT_MuxAlt4,             kGPIO_DigitalOutput, LOW},  /* MOTOR_ENB - PWM */
+    {PORTC, GPIOC,  3, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* MOTOR_IN1 */
+    {PORTD, GPIOD,  1, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* MOTOR_IN2 */
+    {PORTC, GPIOC,  4, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* MOTOR_IN3 */
+    {PORTD, GPIOD,  2, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* MOTOR_IN4 */
+    {PORTA, GPIOA,  1, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* SERVO */
+    {PORTC, GPIOC, 14, kPORT_MuxAlt3,             kGPIO_DigitalInput,  NA},   /* UART4_RX */
+    {PORTC, GPIOC, 15, kPORT_MuxAlt3,             kGPIO_DigitalOutput, NA},   /* UART4_TX */
+    {PORTB, GPIOB,  2, kPORT_PinDisabledOrAnalog, kGPIO_DigitalOutput, NA},   /* VBATT */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)

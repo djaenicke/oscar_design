@@ -36,6 +36,7 @@ typedef enum
     SERVO,
     UART4_RX,
     UART4_TX,
+    VBATT,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

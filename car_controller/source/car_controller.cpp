@@ -44,8 +44,10 @@
 #include "motor_controls.h"
 #include "servo.h"
 #include "bluetooth_control.h"
+#include "battery_monitor.h"
 
 static Servo Obj_Sensor_Servo;
+static volatile float Vbatt;
 
 int main(void)
 {
@@ -60,7 +62,9 @@ int main(void)
 
    Set_GPIO(BLUE_LED, LOW);
 
+   Init_Battery_Monitor();
    Init_Motor_Controls();
+
    Obj_Sensor_Servo.Init();
 
    Bluetooth_Serial_Open();
@@ -68,5 +72,6 @@ int main(void)
    while(1)
    {
       Process_Bluetooth_Cmd();
+      Vbatt = Read_Battery_Voltage();
    }
 }
