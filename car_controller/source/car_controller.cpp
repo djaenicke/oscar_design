@@ -43,6 +43,7 @@
 #include "io_abstraction.h"
 #include "motor_controls.h"
 #include "servo.h"
+#include "wheel_speeds.h"
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
 
@@ -58,11 +59,10 @@ int main(void)
    /* Init FSL debug console. */
    BOARD_InitDebugConsole();
 
-   PRINTF("Hello World\n");
-
    Set_GPIO(BLUE_LED, LOW);
 
    Init_Battery_Monitor();
+   Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
 
    Obj_Sensor_Servo.Init();
@@ -72,6 +72,5 @@ int main(void)
    while(1)
    {
       Process_Bluetooth_Cmd();
-      Vbatt = Read_Battery_Voltage();
    }
 }

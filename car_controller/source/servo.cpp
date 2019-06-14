@@ -54,7 +54,7 @@ void Servo::Init(void)
 
    FTM_GetDefaultConfig(&ftmInfo);
 
-   /* Divide FTM clock by 4 */
+   /* Divide FTM clock by 32 */
    ftmInfo.prescale = kFTM_Prescale_Divide_32;
 
    FTM_Init(FTM3, &ftmInfo);

@@ -7,15 +7,28 @@
 
 #include "dc_motor.h"
 #include "clock_config.h"
+#include "wheel_speeds.h"
+#include "battery_monitor.h"
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 #define PWM_FREQ 1000U /* Hz */
 
+#define Kv 4.54f
+#define Ke 0.22f
+#define DRIVER_VDROP 2.0f
+
+/* Motor objects */
 static DC_Motor L_Motor;
 static DC_Motor R_Motor;
 
-static void Freewheel(void);
+
+static const float Min_Voltage = 3.0;         /* Motors require at least 3.0V */
+static float Max_Voltage;                     /* Max voltage is dependent on the battery SoC */
+
+static Wheel_Speeds_T Wheel_Speeds;
+static float R_Motor_Speed;
+static float L_Motor_Speed;
 
 void Init_Motor_Controls(void)
 {
@@ -47,34 +60,48 @@ void Init_Motor_Controls(void)
    FTM_StartTimer(FTM0, kFTM_SystemClock);
 }
 
+void Execute_Speed_Control(void)
+{
+   float vbatt;
+
+   Get_Wheel_Speeds(&Wheel_Speeds);
+
+   /* Average the wheel speeds to treat the 4 motors as 2 */
+   R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
+   L_Motor_Speed = (Wheel_Speeds.rl + Wheel_Speeds.fl)/2;
+
+   vbatt = Read_Battery_Voltage();
+   Max_Voltage = vbatt - DRIVER_VDROP;
+}
+
 void Forward(void)
 {
-   L_Motor.Set_Speed(100);
-   R_Motor.Set_Speed(100);
+   L_Motor.Set_DC(100);
+   R_Motor.Set_DC(100);
    L_Motor.Set_Direction(FORWARD);
    R_Motor.Set_Direction(FORWARD);
 }
 
 void Backward(void)
 {
-   L_Motor.Set_Speed(100);
-   R_Motor.Set_Speed(100);
+   L_Motor.Set_DC(100);
+   R_Motor.Set_DC(100);
    L_Motor.Set_Direction(REVERSE);
    R_Motor.Set_Direction(REVERSE);
 }
 
 void Left(void)
 {
-   L_Motor.Set_Speed(60);
-   R_Motor.Set_Speed(60);
+   L_Motor.Set_DC(60);
+   R_Motor.Set_DC(60);
    L_Motor.Set_Direction(REVERSE);
    R_Motor.Set_Direction(FORWARD);
 }
 
 void Right(void)
 {
-   L_Motor.Set_Speed(60);
-   R_Motor.Set_Speed(60);
+   L_Motor.Set_DC(60);
+   R_Motor.Set_DC(60);
    L_Motor.Set_Direction(FORWARD);
    R_Motor.Set_Direction(REVERSE);
 }

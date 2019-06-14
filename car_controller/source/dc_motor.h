@@ -33,7 +33,7 @@ public:
 
    void Set_Location(Location_T loc);
    void Set_Direction(Direction_T dir);
-   void Set_Speed(uint8_t percent); /* TODO - replace with rad/s */
+   void Set_DC(uint8_t percent);
    void Freewheel(void);
    void Stop(void);
 };

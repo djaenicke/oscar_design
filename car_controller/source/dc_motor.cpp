@@ -66,7 +66,7 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
    }
 }
 
-void DC_Motor::Set_Speed(uint8_t percent)
+void DC_Motor::Set_DC(uint8_t percent)
 {
    FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, percent);
    FTM_SetSoftwareTrigger(FTM0, true);
