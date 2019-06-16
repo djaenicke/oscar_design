@@ -8,7 +8,6 @@
 #ifndef LOGGING_H_
 #define LOGGING_H_
 
-extern void Init_Data_Logging(void);
-
+extern void SD_Card_Detect_Task(void *pvParameters);
 
 #endif /* LOGGING_H_ */

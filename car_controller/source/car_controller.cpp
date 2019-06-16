@@ -62,6 +62,10 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
+#define SD_CARD_DETECT_TASK_PRIO (configMAX_PRIORITIES - 3U)
+#define MOTOR_CONTROLS_TASK_PRIO (configMAX_PRIORITIES - 2U)
+#define BLUETOOTH_CMD_TASK_PRIO  (configMAX_PRIORITIES - 1U)
+
 typedef struct Task_Cfg_Tag
 {
     TaskFunction_t func;
@@ -90,24 +94,24 @@ int main(void)
 
    /* Init FSL debug console. */
    BOARD_InitDebugConsole();
+   NVIC_SetPriority(BOARD_SDHC_IRQ, 5U);
    SYSMPU_Enable(SYSMPU, false);
 
-   Init_App();
+   //Init_App();
    Set_GPIO(BLUE_LED, LOW);
 
    /* Create OS Tasks */
-   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1000, NULL, 10, NULL);
-   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1000, NULL, 11, NULL);
+   //xTaskCreate(Motor_Controls_Task, "Motor_Controls",      1024, NULL, MOTOR_CONTROLS_TASK_PRIO, NULL);
+   //xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control",   1024, NULL, BLUETOOTH_CMD_TASK_PRIO,  NULL);
+   xTaskCreate(SD_Card_Detect_Task, "SD_Card_Detect_Task", 1024, NULL, SD_CARD_DETECT_TASK_PRIO, NULL);
 
    vTaskStartScheduler();
 }
 
 void Init_App(void)
 {
-   Init_Data_Logging();
    Init_Battery_Monitor();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
-
    Bluetooth_Serial_Open();
 }
