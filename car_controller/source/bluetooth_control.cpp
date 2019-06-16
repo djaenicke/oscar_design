@@ -9,6 +9,9 @@
 #include "motor_controls.h"
 #include "assert.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #define RX_BUFFER_SIZE 10
 
 static uart_config_t UART_Cfg;
@@ -42,24 +45,28 @@ void Bluetooth_Serial_Close(void)
    UART_Deinit(UART4);
 }
 
-void Process_Bluetooth_Cmd(void)
+void Bluetooth_Cmd_Task(void *pvParameters)
 {
-   if (New_Cmd)
+   while(1)
    {
-      switch (Cmd)
+      if (New_Cmd)
       {
-        case 'f': Forward();  break;
-        case 'b': Backward(); break;
-        case 'l': Left();     break;
-        case 'r': Right();    break;
-        case 's': Stop();     break;
-        case 'a': break;
-        default: break;
+         switch (Cmd)
+         {
+           case 'f': Forward();  break;
+           case 'b': Backward(); break;
+           case 'l': Left();     break;
+           case 'r': Right();    break;
+           case 's': Stop();     break;
+           case 'a': break;
+           default: break;
+         }
+
+         New_Cmd = false;
       }
 
-      New_Cmd = false;
+      vTaskDelay(pdMS_TO_TICKS(50));
    }
-
 }
 
 extern "C"

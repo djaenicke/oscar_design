@@ -10,6 +10,9 @@
 #include "wheel_speeds.h"
 #include "battery_monitor.h"
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 #define PWM_FREQ 1000U /* Hz */
@@ -60,18 +63,23 @@ void Init_Motor_Controls(void)
    FTM_StartTimer(FTM0, kFTM_SystemClock);
 }
 
-void Execute_Speed_Control(void)
+void Motor_Controls_Task(void *pvParameters)
 {
    float vbatt;
 
-   Get_Wheel_Speeds(&Wheel_Speeds);
+   while(1)
+   {
+      Get_Wheel_Speeds(&Wheel_Speeds);
 
-   /* Average the wheel speeds to treat the 4 motors as 2 */
-   R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
-   L_Motor_Speed = (Wheel_Speeds.rl + Wheel_Speeds.fl)/2;
+      /* Average the wheel speeds to treat the 4 motors as 2 */
+      R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
+      L_Motor_Speed = (Wheel_Speeds.rl + Wheel_Speeds.fl)/2;
 
-   vbatt = Read_Battery_Voltage();
-   Max_Voltage = vbatt - DRIVER_VDROP;
+      vbatt = Read_Battery_Voltage();
+      Max_Voltage = vbatt - DRIVER_VDROP;
+
+      vTaskDelay(pdMS_TO_TICKS(25));
+   }
 }
 
 void Forward(void)

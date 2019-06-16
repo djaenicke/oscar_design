@@ -9,6 +9,7 @@
 #define MOTOR_CONTROLS_H_
 
 extern void Init_Motor_Controls(void);
+extern void Motor_Controls_Task(void *pvParameters);
 extern void Forward(void);
 extern void Backward(void);
 extern void Left(void);

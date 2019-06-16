@@ -33,6 +33,8 @@
  * @brief   Application entry point.
  */
 #include <stdio.h>
+
+/* SDK includes */
 #include "board.h"
 #include "peripherals.h"
 #include "pin_mux.h"
@@ -40,6 +42,14 @@
 #include "MK64F12.h"
 #include "fsl_debug_console.h"
 
+/* FreeRTOS kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "timers.h"
+
+/* Application */
+#include "car_controller.h"
 #include "io_abstraction.h"
 #include "motor_controls.h"
 #include "servo.h"
@@ -47,30 +57,53 @@
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
 
-static Servo Obj_Sensor_Servo;
-static volatile float Vbatt;
+/*******************************************************************************
+ * Definitions
+ ******************************************************************************/
+typedef struct Task_Cfg_Tag
+{
+    TaskFunction_t func;
+    const char name[configMAX_TASK_NAME_LEN];
+    const configSTACK_DEPTH_TYPE stack_size;
+    UBaseType_t priority;
+    TaskHandle_t handle;
+} Task_Cfg_T;
 
+static void Init_App(void);
+
+/*******************************************************************************
+* Variables
+******************************************************************************/
+
+
+/*******************************************************************************
+ * Function Definitions
+ ******************************************************************************/
 int main(void)
 {
    /* Init board hardware. */
    BOARD_InitBootPins();
    BOARD_InitBootClocks();
    BOARD_InitBootPeripherals();
+
    /* Init FSL debug console. */
    BOARD_InitDebugConsole();
 
+   Init_App();
    Set_GPIO(BLUE_LED, LOW);
 
+   /* Create OS Tasks */
+   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1000, NULL, 10, NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1000, NULL, 11, NULL);
+
+   vTaskStartScheduler();
+}
+
+void Init_App(void)
+{
    Init_Battery_Monitor();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
 
-   Obj_Sensor_Servo.Init();
-
    Bluetooth_Serial_Open();
-
-   while(1)
-   {
-      Process_Bluetooth_Cmd();
-   }
 }
