@@ -38,6 +38,10 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+#include "clock_config.h"
+#include "fsl_gpio.h"
+#include "fsl_port.h"
+
 /**
  * @brief	The board name 
  */
@@ -46,6 +50,23 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
+
+/* The SDHC instance/channel used for board */
+#define BOARD_SDHC_CD_GPIO_IRQ_HANDLER PORTB_IRQHandler
+
+/* SDHC base address, clock and card detection pin */
+#define BOARD_SDHC_BASEADDR SDHC
+#define BOARD_SDHC_CLKSRC kCLOCK_CoreSysClk
+#define BOARD_SDHC_CLK_FREQ CLOCK_GetFreq(kCLOCK_CoreSysClk)
+#define BOARD_SDHC_IRQ SDHC_IRQn
+#define BOARD_SDHC_CD_GPIO_BASE GPIOE
+#ifndef BOARD_SDHC_CD_GPIO_PIN
+#define BOARD_SDHC_CD_GPIO_PIN 6U
+#endif
+#define BOARD_SDHC_CD_PORT_BASE PORTE
+#define BOARD_SDHC_CD_PORT_IRQ PORTE_IRQn
+#define BOARD_SDHC_CD_PORT_IRQ_HANDLER PORTE_IRQHandler
+#define BOARD_SDHC_CARD_INSERT_CD_LEVEL (1U)
 
 /**
  * @brief 	Initialize board specific settings.

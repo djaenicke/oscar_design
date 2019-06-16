@@ -41,6 +41,7 @@
 #include "clock_config.h"
 #include "MK64F12.h"
 #include "fsl_debug_console.h"
+#include "fsl_sysmpu.h"
 
 /* FreeRTOS kernel includes. */
 #include "FreeRTOS.h"
@@ -56,6 +57,7 @@
 #include "wheel_speeds.h"
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
+#include "logging.h"
 
 /*******************************************************************************
  * Definitions
@@ -88,6 +90,7 @@ int main(void)
 
    /* Init FSL debug console. */
    BOARD_InitDebugConsole();
+   SYSMPU_Enable(SYSMPU, false);
 
    Init_App();
    Set_GPIO(BLUE_LED, LOW);
@@ -101,6 +104,7 @@ int main(void)
 
 void Init_App(void)
 {
+   Init_Data_Logging();
    Init_Battery_Monitor();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
