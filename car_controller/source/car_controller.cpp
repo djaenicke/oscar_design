@@ -62,7 +62,7 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define SD_CARD_DETECT_TASK_PRIO (configMAX_PRIORITIES - 3U)
+#define SD_CARD_INIT_TASK_PRIO   (configMAX_PRIORITIES - 3U)
 #define MOTOR_CONTROLS_TASK_PRIO (configMAX_PRIORITIES - 2U)
 #define BLUETOOTH_CMD_TASK_PRIO  (configMAX_PRIORITIES - 1U)
 
@@ -97,13 +97,13 @@ int main(void)
    NVIC_SetPriority(BOARD_SDHC_IRQ, 5U);
    SYSMPU_Enable(SYSMPU, false);
 
-   //Init_App();
+   Init_App();
    Set_GPIO(BLUE_LED, LOW);
 
    /* Create OS Tasks */
-   //xTaskCreate(Motor_Controls_Task, "Motor_Controls",      1024, NULL, MOTOR_CONTROLS_TASK_PRIO, NULL);
-   //xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control",   1024, NULL, BLUETOOTH_CMD_TASK_PRIO,  NULL);
-   xTaskCreate(SD_Card_Detect_Task, "SD_Card_Detect_Task", 1024, NULL, SD_CARD_DETECT_TASK_PRIO, NULL);
+   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1024, NULL, MOTOR_CONTROLS_TASK_PRIO, NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,  NULL);
+   xTaskCreate(SD_Card_Init_Task,   "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO, NULL);
 
    vTaskStartScheduler();
 }

@@ -24,12 +24,14 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define DEMO_TASK_GET_SEM_BLOCK_TICKS 1U
-
+#define BUFFER_SIZE (100U)
 
 /*******************************************************************************
 * Variables
 ******************************************************************************/
+SDK_ALIGN(uint8_t Write_Buffer[SDK_SIZEALIGN(BUFFER_SIZE, SDMMC_DATA_BUFFER_ALIGN_CACHE)],
+          MAX(SDMMC_DATA_BUFFER_ALIGN_CACHE, SDMMCHOST_DMA_BUFFER_ADDR_ALIGN));
+
 static void SD_Card_Detect_Call_Back(bool is_inserted, void *userData);
 static const sdmmchost_detect_card_t s_sdCardDetect = {
     .cdType = kSDMMCHOST_DetectCardByGpioCD,
@@ -41,123 +43,139 @@ static const sdmmchost_detect_card_t s_sdCardDetect = {
 static FATFS File_System;
 static FIL   File_Object;
 
-static uint32_t Task_Sleep_Ticks = portMAX_DELAY;
-
-static volatile bool Card_Inserted     = false;
+static volatile bool Card_Inserted      = false;
 static volatile bool Card_Insert_Status = false;
 
-static SemaphoreHandle_t File_Access_Semaphore = NULL;
 static SemaphoreHandle_t Card_Detect_Semaphore = NULL;
+static SemaphoreHandle_t File_Access_Semaphore = NULL;
 
-static status_t Make_File_System(void);
+static int Init_File_System(void);
 
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
-static void SD_Card_Detect_Call_Back(bool is_inserted, void *userData)
+void Data_Logging_Task(void *pvParameters)
 {
-   Card_Insert_Status = is_inserted;
-   xSemaphoreGiveFromISR(Card_Detect_Semaphore, NULL);
+   while(1)
+   {
+      if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, portMAX_DELAY))
+      {
+         if (SD_IsCardPresent(&g_sd))
+         {
+            /* TODO: Add mechanism to open and close file from bluetooth input */
+         }
+
+         xSemaphoreGive(File_Access_Semaphore);
+      }
+      else
+      {
+         PRINTF("Failed to take semaphore.\r\n");
+      }
+   }
 }
 
-void SD_Card_Detect_Task(void *pvParameters)
+void SD_Card_Init_Task(void *pvParameters)
 {
-   File_Access_Semaphore = xSemaphoreCreateBinary();
    Card_Detect_Semaphore = xSemaphoreCreateBinary();
+   File_Access_Semaphore = xSemaphoreCreateBinary();
 
    g_sd.host.base           = SD_HOST_BASEADDR;
    g_sd.host.sourceClock_Hz = SD_HOST_CLK_FREQ;
    g_sd.usrParam.cd         = &s_sdCardDetect;
 
-   /* SD host init function */
    if (SD_HostInit(&g_sd) == kStatus_Success)
    {
-     while (true)
-     {
-         /* take card detect semaphore */
+      while (true)
+      {
          if (xSemaphoreTake(Card_Detect_Semaphore, portMAX_DELAY) == pdTRUE)
          {
-             if (Card_Inserted != Card_Insert_Status)
-             {
-                 Card_Inserted = Card_Insert_Status;
+            if (Card_Inserted != Card_Insert_Status)
+            {
+               Card_Inserted = Card_Insert_Status;
 
-                 /* power off card */
-                 SD_PowerOffCard(g_sd.host.base, g_sd.usrParam.pwr);
+               SD_PowerOffCard(g_sd.host.base, g_sd.usrParam.pwr);
 
-                 if (Card_Inserted)
-                 {
-                     PRINTF("\r\nCard inserted.\r\n");
-                     /* power on the card */
-                     SD_PowerOnCard(g_sd.host.base, g_sd.usrParam.pwr);
-                     /* make file system */
-                     if (Make_File_System() != kStatus_Success)
-                     {
-                         continue;
-                     }
+               if (Card_Inserted)
+               {
+                  PRINTF("\r\nCard inserted.\r\n");
+
+                  SD_PowerOnCard(g_sd.host.base, g_sd.usrParam.pwr);
+
+                  if (-1 != Init_File_System())
+                  {
                      xSemaphoreGive(File_Access_Semaphore);
-                     Task_Sleep_Ticks = DEMO_TASK_GET_SEM_BLOCK_TICKS;
-                 }
-             }
+                  }
+               }
+            }
 
-             if (!Card_Inserted)
-             {
-                 PRINTF("\r\nPlease insert a card into board.\r\n");
-             }
+            if (!Card_Inserted)
+            {
+               PRINTF("\r\nPlease insert a card into board.\r\n");
+            }
          }
-     }
+      }
    }
    else
    {
-     PRINTF("\r\nSD host init fail\r\n");
+      PRINTF("\r\nSD host init fail\r\n");
    }
 
    vTaskSuspend(NULL);
 }
 
-static status_t Make_File_System(void)
+static int Init_File_System(void)
 {
-    FRESULT error;
-    const TCHAR driverNumberBuffer[3U] = {SDDISK + '0', ':', '/'};
-    BYTE work[FF_MAX_SS];
+   FRESULT error;
+   const TCHAR drive_number[3U] = {SDDISK + '0', ':', '/'};
 
-    if (f_mount(&File_System, driverNumberBuffer, 0U))
-    {
-        PRINTF("Mount volume failed.\r\n");
-        return kStatus_Fail;
-    }
+   error = f_mount(&File_System, drive_number, 0U);
+   if (error)
+   {
+       PRINTF("Mount volume failed.\r\n");
+       return -1;
+   }
 
-#if (FF_FS_RPATH >= 2U)
-    error = f_chdrive((char const *)&driverNumberBuffer[0U]);
-    if (error)
-    {
-        PRINTF("Change drive failed.\r\n");
-        return kStatus_Fail;
-    }
-#endif
+   error = f_chdrive((char const *)&drive_number[0U]);
+   if (error)
+   {
+       PRINTF("Change drive failed.\r\n");
+       return -1;
+   }
 
-#if FF_USE_MKFS
-    PRINTF("\r\nMake file system......The time may be long if the card capacity is big.\r\n");
-    if (f_mkfs(driverNumberBuffer, FM_ANY, 0U, work, sizeof work))
-    {
-        PRINTF("Make file system failed.\r\n");
-        return kStatus_Fail;
-    }
-#endif /* FF_USE_MKFS */
+   PRINTF("\r\nCreate directory......\r\n");
+   error = f_mkdir(_T("/dir_1"));
+   if (error)
+   {
+       if (error == FR_EXIST)
+       {
+          PRINTF("Directory exists.\r\n");
+       }
+       else
+       {
+         PRINTF("Make directory failed.\r\n");
+         return -1;
+       }
+   }
 
-    PRINTF("\r\nCreate directory......\r\n");
-    error = f_mkdir(_T("/dir_1"));
-    if (error)
-    {
-        if (error == FR_EXIST)
-        {
-            PRINTF("Directory exists.\r\n");
-        }
-        else
-        {
-            PRINTF("Make directory failed.\r\n");
-            return kStatus_Fail;
-        }
-    }
+   /* TODO
+   PRINTF("\r\nCreate a file......\r\n");
+   error = f_open(&File_Object, _T("/dir_1/data_log.bin"), (FA_WRITE | FA_CREATE_NEW));
+   if (error)
+   {
+        PRINTF("Open file failed.\r\n");
+        return -1;
+   }
+   else
+   {
+      PRINTF("File created.\r\n");
+   }
+   */
 
-    return kStatus_Success;
+   return 0;
+}
+
+static void SD_Card_Detect_Call_Back(bool is_inserted, void *userData)
+{
+   Card_Insert_Status = is_inserted;
+   xSemaphoreGiveFromISR(Card_Detect_Semaphore, NULL);
 }
