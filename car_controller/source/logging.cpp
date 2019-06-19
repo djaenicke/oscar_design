@@ -55,7 +55,7 @@ static volatile bool Card_Insert_Status = false;
 static SemaphoreHandle_t Card_Detect_Semaphore = NULL;
 static SemaphoreHandle_t File_Access_Semaphore = NULL;
 
-static const uint32_t END_SAMPLE_PATTERN = 0xFFFFFFFF;
+static const uint32_t END_PATTERN = 0xFFFFFFFF;
 
 static int Init_File_System(void);
 
@@ -67,7 +67,7 @@ void Data_Logging_Task(void *pvParameters)
    static uint32_t cnt;
    float vbatt = 0.0;
    Wheel_Speeds_T wheel_speeds;
-   uint8_t bytes_written = 0;
+   uint32_t bw = 0;
 
    while(1)
    {
@@ -78,15 +78,16 @@ void Data_Logging_Task(void *pvParameters)
       {
          if (SD_IsCardPresent(&g_sd) && OPEN == File_State)
          {
-            f_write(&File_Object, &cnt,                sizeof(uint32_t), (UINT *)&bytes_written);
-            f_write(&File_Object, &vbatt,              sizeof(float),    (UINT *)&bytes_written);
-            f_write(&File_Object, &wheel_speeds.rr,    sizeof(float),    (UINT *)&bytes_written);
-            f_write(&File_Object, &wheel_speeds.rl,    sizeof(float),    (UINT *)&bytes_written);
-            f_write(&File_Object, &wheel_speeds.fr,    sizeof(float),    (UINT *)&bytes_written);
-            f_write(&File_Object, &wheel_speeds.fl,    sizeof(float),    (UINT *)&bytes_written);
-            f_write(&File_Object, &END_SAMPLE_PATTERN, sizeof(uint32_t), (UINT *)&bytes_written);
+            f_write(&File_Object, &cnt,             sizeof(uint32_t),  (UINT *)&bw);
+            f_write(&File_Object, &vbatt,           sizeof(float),     (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.rr, sizeof(float),     (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.rl, sizeof(float),     (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.fr, sizeof(float),     (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.fl, sizeof(float),     (UINT *)&bw);
+            f_write(&File_Object, &END_PATTERN,     sizeof(uint32_t),  (UINT *)&bw);
             cnt++;
          }
+
          xSemaphoreGive(File_Access_Semaphore);
       }
       else
