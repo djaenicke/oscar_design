@@ -13,6 +13,8 @@
 #include "diskio.h"
 #include "fsl_sd_disk.h"
 #include "board.h"
+#include "battery_monitor.h"
+#include "wheel_speeds.h"
 
 #include "pin_mux.h"
 #include "clock_config.h"
@@ -25,6 +27,8 @@
  * Definitions
  ******************************************************************************/
 #define BUFFER_SIZE (100U)
+#define CLOSED (0U)
+#define OPEN   (1U)
 
 /*******************************************************************************
 * Variables
@@ -42,12 +46,16 @@ static const sdmmchost_detect_card_t s_sdCardDetect = {
 
 static FATFS File_System;
 static FIL   File_Object;
+static uint8_t File_State = CLOSED;
+static bool File_System_Init_Complete = false;
 
 static volatile bool Card_Inserted      = false;
 static volatile bool Card_Insert_Status = false;
 
 static SemaphoreHandle_t Card_Detect_Semaphore = NULL;
 static SemaphoreHandle_t File_Access_Semaphore = NULL;
+
+static const uint32_t END_SAMPLE_PATTERN = 0xFFFFFFFF;
 
 static int Init_File_System(void);
 
@@ -56,21 +64,36 @@ static int Init_File_System(void);
  ******************************************************************************/
 void Data_Logging_Task(void *pvParameters)
 {
+   static uint32_t cnt;
+   float vbatt = 0.0;
+   Wheel_Speeds_T wheel_speeds;
+   uint8_t bytes_written = 0;
+
    while(1)
    {
+      vbatt = Read_Battery_Voltage();
+      Get_Wheel_Speeds(&wheel_speeds);
+
       if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, portMAX_DELAY))
       {
-         if (SD_IsCardPresent(&g_sd))
+         if (SD_IsCardPresent(&g_sd) && OPEN == File_State)
          {
-            /* TODO: Add mechanism to open and close file from bluetooth input */
+            f_write(&File_Object, &cnt,                sizeof(uint32_t), (UINT *)&bytes_written);
+            f_write(&File_Object, &vbatt,              sizeof(float),    (UINT *)&bytes_written);
+            f_write(&File_Object, &wheel_speeds.rr,    sizeof(float),    (UINT *)&bytes_written);
+            f_write(&File_Object, &wheel_speeds.rl,    sizeof(float),    (UINT *)&bytes_written);
+            f_write(&File_Object, &wheel_speeds.fr,    sizeof(float),    (UINT *)&bytes_written);
+            f_write(&File_Object, &wheel_speeds.fl,    sizeof(float),    (UINT *)&bytes_written);
+            f_write(&File_Object, &END_SAMPLE_PATTERN, sizeof(uint32_t), (UINT *)&bytes_written);
+            cnt++;
          }
-
          xSemaphoreGive(File_Access_Semaphore);
       }
       else
       {
          PRINTF("Failed to take semaphore.\r\n");
       }
+      vTaskDelay(pdMS_TO_TICKS(100));
    }
 }
 
@@ -87,7 +110,7 @@ void SD_Card_Init_Task(void *pvParameters)
    {
       while (true)
       {
-         if (xSemaphoreTake(Card_Detect_Semaphore, portMAX_DELAY) == pdTRUE)
+         if (xSemaphoreTake(Card_Detect_Semaphore, pdMS_TO_TICKS(1000)) == pdTRUE)
          {
             if (Card_Inserted != Card_Insert_Status)
             {
@@ -157,21 +180,47 @@ static int Init_File_System(void)
        }
    }
 
-   /* TODO
-   PRINTF("\r\nCreate a file......\r\n");
-   error = f_open(&File_Object, _T("/dir_1/data_log.bin"), (FA_WRITE | FA_CREATE_NEW));
-   if (error)
-   {
-        PRINTF("Open file failed.\r\n");
-        return -1;
-   }
-   else
-   {
-      PRINTF("File created.\r\n");
-   }
-   */
-
+   File_System_Init_Complete = true;
    return 0;
+}
+
+void Open_Log_File(void)
+{
+   FRESULT error;
+
+   if (File_System_Init_Complete)
+   {
+      PRINTF("\r\nCreate a file......\r\n");
+      error = f_open(&File_Object, _T("/dir_1/data_log.bin"), (FA_WRITE | FA_CREATE_ALWAYS));
+      if (error)
+      {
+           PRINTF("Open file failed.\r\n");
+      }
+      else
+      {
+         PRINTF("File created.\r\n");
+         File_State = OPEN;
+      }
+   }
+}
+
+void Close_Log_File(void)
+{
+   if (CLOSED != File_State)
+   {
+      if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, portMAX_DELAY))
+      {
+         if (f_close(&File_Object))
+         {
+            PRINTF("\r\nFailed to close file.\r\n");
+         }
+         else
+         {
+            PRINTF("\r\nFile closed.\r\n");
+            File_State = CLOSED;
+         }
+      }
+   }
 }
 
 static void SD_Card_Detect_Call_Back(bool is_inserted, void *userData)

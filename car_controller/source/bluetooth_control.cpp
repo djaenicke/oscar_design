@@ -7,6 +7,7 @@
 
 #include "fsl_uart.h"
 #include "motor_controls.h"
+#include "logging.h"
 #include "assert.h"
 
 #include "FreeRTOS.h"
@@ -59,7 +60,8 @@ void Bluetooth_Cmd_Task(void *pvParameters)
            case 'r': Right();    break;
            case 's': Stop();     break;
            case 'a': break;
-           default: break;
+           case 'o': Open_Log_File();  break;
+           case 'c': Close_Log_File(); break;
          }
 
          New_Cmd = false;
