@@ -12,9 +12,11 @@
 #include "assert.h"
 #include "fsl_ftm.h"
 
-#define PULSES_PER_REV (20.0f)
-#define RAD_PER_REV    (6.2831853f)
-#define CLK_PERIOD     (0.00002048f)
+#define PULSES_PER_REV   (20.0f)
+#define RAD_PER_REV      (6.2831853f)
+#define CLK_PERIOD       (0.00002048f)
+
+#define MAX_MEASUREMENTS (6)
 
 #define START (0)
 #define END   (1)
@@ -22,7 +24,7 @@
 typedef struct {
    uint8_t  meas_type;
    uint16_t start_cnt;
-   uint16_t elapsed_cnt;
+   uint16_t elapsed_cnt[MAX_MEASUREMENTS];
 } Timing_T;
 
 static volatile Timing_T Pulse_Timing[4] = {0};
@@ -127,8 +129,6 @@ void PORTB_IRQHandler(void)
 
 static inline void Record_Pulse_Info(uint8_t pos)
 {
-   Pulses[pos]++;
-
    if (START == Pulse_Timing[pos].meas_type)
    {
       Pulse_Timing[pos].start_cnt = (uint16_t)FTM1->CNT;
@@ -136,8 +136,14 @@ static inline void Record_Pulse_Info(uint8_t pos)
    }
    else
    {
-      Pulse_Timing[pos].elapsed_cnt = (uint16_t)FTM1->CNT - Pulse_Timing[pos].start_cnt;
+      /* Sample the period as many times as possible */
+      if (Pulses[pos] < MAX_MEASUREMENTS)
+      {
+         Pulse_Timing[pos].elapsed_cnt[Pulses[pos]] = (uint16_t)FTM1->CNT - Pulse_Timing[pos].start_cnt;
+      }
+
       Pulse_Timing[pos].meas_type = START;
+      Pulses[pos]++;
    }
 }
 
@@ -147,7 +153,13 @@ static inline float Compute_Speed(uint8_t pos)
 
    if (Pulses[pos])
    {
-      temp = RAD_PER_REV/(PULSES_PER_REV*Pulse_Timing[pos].elapsed_cnt*CLK_PERIOD);
+      /* Compute the average period over all the available measurements */
+      for (uint8_t i=0; i<Pulses[pos]; i++)
+      {
+         temp += RAD_PER_REV/(PULSES_PER_REV*Pulse_Timing[pos].elapsed_cnt[i]*CLK_PERIOD);
+      }
+
+      temp /= Pulses[pos];
       Pulses[pos] = 0;
    }
    else
