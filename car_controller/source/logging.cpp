@@ -78,13 +78,13 @@ void Data_Logging_Task(void *pvParameters)
       {
          if (SD_IsCardPresent(&g_sd) && OPEN == File_State)
          {
-            f_write(&File_Object, &cnt,             sizeof(uint32_t),  (UINT *)&bw);
-            f_write(&File_Object, &vbatt,           sizeof(float),     (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.rr, sizeof(float),     (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.rl, sizeof(float),     (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.fr, sizeof(float),     (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.fl, sizeof(float),     (UINT *)&bw);
-            f_write(&File_Object, &END_PATTERN,     sizeof(uint32_t),  (UINT *)&bw);
+            f_write(&File_Object, &cnt,             sizeof(uint32_t), (UINT *)&bw);
+            f_write(&File_Object, &vbatt,           sizeof(float),    (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.rr, sizeof(float),    (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.rl, sizeof(float),    (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.fr, sizeof(float),    (UINT *)&bw);
+            f_write(&File_Object, &wheel_speeds.fl, sizeof(float),    (UINT *)&bw);
+            f_write(&File_Object, &END_PATTERN,     sizeof(uint32_t), (UINT *)&bw);
             cnt++;
          }
 
@@ -94,7 +94,7 @@ void Data_Logging_Task(void *pvParameters)
       {
          PRINTF("Failed to take semaphore.\r\n");
       }
-      vTaskDelay(pdMS_TO_TICKS(100));
+      vTaskDelay(pdMS_TO_TICKS(50));
    }
 }
 
