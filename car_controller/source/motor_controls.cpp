@@ -69,7 +69,7 @@ void Motor_Controls_Task(void *pvParameters)
 
    while(1)
    {
-      Get_Wheel_Speeds(&Wheel_Speeds);
+      //Get_Wheel_Speeds(&Wheel_Speeds); TODO: uncomment this
 
       /* Average the wheel speeds to treat the 4 motors as 2 */
       R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
@@ -78,7 +78,7 @@ void Motor_Controls_Task(void *pvParameters)
       vbatt = Read_Battery_Voltage();
       Max_Voltage = vbatt - DRIVER_VDROP;
 
-      vTaskDelay(pdMS_TO_TICKS(25));
+      vTaskDelay(pdMS_TO_TICKS(1000)); //TODO: change to 25
    }
 }
 

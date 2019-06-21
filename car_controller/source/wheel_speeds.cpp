@@ -16,7 +16,8 @@
 #define RAD_PER_REV      (6.2831853f)
 #define CLK_PERIOD       (0.00002048f)
 
-#define MAX_MEASUREMENTS (6)
+#define MAX_MEASUREMENTS (10)
+#define MIN_PERIOD_CNTS  (512)
 
 #define START (0)
 #define END   (1)
@@ -129,6 +130,8 @@ void PORTB_IRQHandler(void)
 
 static inline void Record_Pulse_Info(uint8_t pos)
 {
+   uint16_t temp_cnt;
+
    if (START == Pulse_Timing[pos].meas_type)
    {
       Pulse_Timing[pos].start_cnt = (uint16_t)FTM1->CNT;
@@ -139,17 +142,27 @@ static inline void Record_Pulse_Info(uint8_t pos)
       /* Sample the period as many times as possible */
       if (Pulses[pos] < MAX_MEASUREMENTS)
       {
-         Pulse_Timing[pos].elapsed_cnt[Pulses[pos]] = (uint16_t)FTM1->CNT - Pulse_Timing[pos].start_cnt;
-      }
+         temp_cnt = (uint16_t)FTM1->CNT - Pulse_Timing[pos].start_cnt;
 
-      Pulse_Timing[pos].meas_type = START;
-      Pulses[pos]++;
+         if (temp_cnt > MIN_PERIOD_CNTS)
+         {
+            Pulse_Timing[pos].elapsed_cnt[Pulses[pos]] = temp_cnt;
+            Pulses[pos]++;
+         }
+
+         Pulse_Timing[pos].meas_type = START;
+      }
+      else
+      {
+         /* Shouldn't happen */
+         assert(false);
+      }
    }
 }
 
 static inline float Compute_Speed(uint8_t pos)
 {
-   float temp;
+   float temp = 0;
 
    if (Pulses[pos])
    {
@@ -167,5 +180,6 @@ static inline float Compute_Speed(uint8_t pos)
       temp = 0.0f;
    }
 
+   Pulse_Timing[pos].meas_type = START;
    return temp;
 }
