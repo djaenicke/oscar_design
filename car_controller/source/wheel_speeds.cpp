@@ -16,13 +16,15 @@
 #define RAD_PER_REV      (6.2831853f)
 #define CLK_PERIOD       (0.00002048f)
 
-#define MAX_MEASUREMENTS (10)
+#define ZERO_SPEED_DELAY (2)
+#define MAX_MEASUREMENTS (5)
 #define MIN_PERIOD_CNTS  (512)
 
 #define START (0)
 #define END   (1)
 
 typedef struct {
+   uint8_t  num_zero_meas;
    uint8_t  meas_type;
    uint16_t start_cnt;
    uint16_t elapsed_cnt[MAX_MEASUREMENTS];
@@ -31,8 +33,8 @@ typedef struct {
 static volatile Timing_T Pulse_Timing[4] = {0};
 static volatile uint32_t Pulses[NUM_WHEELS] = {0, 0, 0, 0};
 
-static inline void Record_Pulse_Info(uint8_t pos);
-static inline float Compute_Speed(uint8_t pos);
+static inline void  Record_Pulse_Info(uint8_t pos);
+static inline float Compute_Speed(uint8_t pos, float current_speed);
 
 void Init_Wheel_Speed_Sensors(void)
 {
@@ -73,12 +75,14 @@ void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
       DisableIRQ(PORTB_IRQn);
       DisableIRQ(PORTC_IRQn);
 
-      speeds->rr = Compute_Speed(RR);
-      speeds->rl = Compute_Speed(RL);
-      speeds->fr = Compute_Speed(FR);
-      speeds->fl = Compute_Speed(FL);
+      speeds->rr = Compute_Speed(RR, speeds->rr);
+      speeds->rl = Compute_Speed(RL, speeds->rl);
+      speeds->fr = Compute_Speed(FR, speeds->fr);
+      speeds->fl = Compute_Speed(FL, speeds->fl);
 
+      PORT_ClearPinsInterruptFlags(PORTB, 0xFFFFFFFF);
       EnableIRQ(PORTB_IRQn);
+      PORT_ClearPinsInterruptFlags(PORTC, 0xFFFFFFFF);
       EnableIRQ(PORTC_IRQn);
    }
    else
@@ -160,12 +164,14 @@ static inline void Record_Pulse_Info(uint8_t pos)
    }
 }
 
-static inline float Compute_Speed(uint8_t pos)
+static inline float Compute_Speed(uint8_t pos, float current_speed)
 {
    float temp = 0;
 
    if (Pulses[pos])
    {
+      Pulse_Timing[pos].num_zero_meas = 0;
+
       /* Compute the average period over all the available measurements */
       for (uint8_t i=0; i<Pulses[pos]; i++)
       {
@@ -174,6 +180,11 @@ static inline float Compute_Speed(uint8_t pos)
 
       temp /= Pulses[pos];
       Pulses[pos] = 0;
+   }
+   else if (Pulse_Timing[pos].num_zero_meas < ZERO_SPEED_DELAY)
+   {
+      Pulse_Timing[pos].num_zero_meas++;
+      temp = current_speed;
    }
    else
    {
