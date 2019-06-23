@@ -25,13 +25,8 @@
 static DC_Motor L_Motor;
 static DC_Motor R_Motor;
 
-
-static const float Min_Voltage = 3.0;         /* Motors require at least 3.0V */
-static float Max_Voltage;                     /* Max voltage is dependent on the battery SoC */
-
-static Wheel_Speeds_T Wheel_Speeds;
-static float R_Motor_Speed;
-static float L_Motor_Speed;
+static const float Min_Voltage = 3.0; /* Motors require at least 3.0V */
+static float Max_Voltage;             /* Max voltage is dependent on the battery SoC */
 
 void Init_Motor_Controls(void)
 {
@@ -66,14 +61,22 @@ void Init_Motor_Controls(void)
 void Motor_Controls_Task(void *pvParameters)
 {
    float vbatt;
+   Wheel_Speeds_T wheel_speeds;
+   static float r_avg_motor_speed;
+   static float l_avg_motor_speed;
 
    while(1)
    {
-      //Get_Wheel_Speeds(&Wheel_Speeds); TODO: uncomment this
+      Get_Wheel_Speeds(&wheel_speeds);
+
+      if (L_Motor.stopped && R_Motor.stopped)
+      {
+         Zero_Wheel_Speeds();
+      }
 
       /* Average the wheel speeds to treat the 4 motors as 2 */
-      R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
-      L_Motor_Speed = (Wheel_Speeds.rl + Wheel_Speeds.fl)/2;
+      r_avg_motor_speed = (wheel_speeds.rr + wheel_speeds.fr)/2;
+      l_avg_motor_speed = (wheel_speeds.rl + wheel_speeds.fl)/2;
 
       vbatt = Read_Battery_Voltage();
       Max_Voltage = vbatt - DRIVER_VDROP;

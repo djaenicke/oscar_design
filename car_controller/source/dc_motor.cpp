@@ -32,6 +32,7 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
    switch (new_dir)
    {
       case REVERSE:
+         direction = REVERSE;
          switch (loc)
          {
             case LEFT_SIDE:
@@ -47,6 +48,7 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
          }
          break;
       case FORWARD:
+         direction = FORWARD;
          switch (loc)
          {
             case LEFT_SIDE:
@@ -66,14 +68,26 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
    }
 }
 
+Direction_T DC_Motor::Get_Direction(void)
+{
+   return (direction);
+}
+
 void DC_Motor::Set_DC(uint8_t percent)
 {
+   if (percent > 0)
+   {
+      stopped = false;
+   }
+
    FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, percent);
    FTM_SetSoftwareTrigger(FTM0, true);
 }
 
 void DC_Motor::Stop(void)
 {
+   stopped = true;
+
    switch (loc)
    {
       case LEFT_SIDE:
@@ -91,6 +105,8 @@ void DC_Motor::Stop(void)
 
 void DC_Motor::Freewheel(void)
 {
+   stopped = false;
+
    FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, 0);
    FTM_SetSoftwareTrigger(FTM0, true);
 }

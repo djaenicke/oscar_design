@@ -11,30 +11,28 @@
 #include "io_abstraction.h"
 #include "assert.h"
 #include "fsl_ftm.h"
+#include "low_pass_filter.h"
 
-#define PULSES_PER_REV   (20.0f)
-#define RAD_PER_REV      (6.2831853f)
-#define CLK_PERIOD       (0.00002048f)
+#define ISR_Flag_Is_Set(pos) ((Pin_Cfgs[pos].pbase->PCR[Pin_Cfgs[pos].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
+#define Clear_ISR_Flag(pos)  Pin_Cfgs[pos].pbase->PCR[Pin_Cfgs[pos].pin] |= PORT_PCR_ISF(1);
 
-#define ZERO_SPEED_DELAY (2)
-#define MAX_MEASUREMENTS (5)
-#define MIN_PERIOD_CNTS  (512)
-
-#define START (0)
-#define END   (1)
+#define PULSES_PER_REV (20.0f)
+#define RAD_PER_REV    (6.2831853f)
+#define CLK_PERIOD     (0.00002048f)
+#define START          ((uint8_t)0)
+#define END            ((uint8_t)1)
+#define FILTER_ALPHA   (0.5f) /* TODO - update this to a better value */
 
 typedef struct {
-   uint8_t  num_zero_meas;
    uint8_t  meas_type;
    uint16_t start_cnt;
-   uint16_t elapsed_cnt[MAX_MEASUREMENTS];
-} Timing_T;
+   uint16_t period_cnt;
+} Period_T;
 
-static volatile Timing_T Pulse_Timing[4] = {0};
-static volatile uint32_t Pulses[NUM_WHEELS] = {0, 0, 0, 0};
+static volatile Period_T Encoder_Period[NUM_WHEELS] = {0};
 
-static inline void  Record_Pulse_Info(uint8_t pos);
-static inline float Compute_Speed(uint8_t pos, float current_speed);
+static inline void  Measure_Period(Wheel_T pos);
+static inline float Period_2_Speed(Wheel_T pos);
 
 void Init_Wheel_Speed_Sensors(void)
 {
@@ -72,18 +70,10 @@ void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
 {
    if (NULL != speeds)
    {
-      DisableIRQ(PORTB_IRQn);
-      DisableIRQ(PORTC_IRQn);
-
-      speeds->rr = Compute_Speed(RR, speeds->rr);
-      speeds->rl = Compute_Speed(RL, speeds->rl);
-      speeds->fr = Compute_Speed(FR, speeds->fr);
-      speeds->fl = Compute_Speed(FL, speeds->fl);
-
-      PORT_ClearPinsInterruptFlags(PORTB, 0xFFFFFFFF);
-      EnableIRQ(PORTB_IRQn);
-      PORT_ClearPinsInterruptFlags(PORTC, 0xFFFFFFFF);
-      EnableIRQ(PORTC_IRQn);
+      speeds->rr = Period_2_Speed(RR);
+      speeds->rl = Period_2_Speed(RL);
+      speeds->fr = Period_2_Speed(FR);
+      speeds->fl = Period_2_Speed(FL);
    }
    else
    {
@@ -91,20 +81,28 @@ void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
    }
 }
 
+void Zero_Wheel_Speeds(void)
+{
+   for (uint8_t i=0; i<(uint8_t)NUM_WHEELS; i++)
+   {
+      Encoder_Period[i].period_cnt = (uint16_t) 0;
+   }
+}
+
 extern "C"
 {
 void PORTC_IRQHandler(void)
 {
-   /* Determine which wheel speed sensor caused the interrupt */
-   if ((Pin_Cfgs[RL_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[RL_SPEED_SENSOR].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
+   /* Determine which wheel speed sensor(s) caused the interrupt */
+   if (ISR_Flag_Is_Set(RL_SPEED_SENSOR))
    {
-      Record_Pulse_Info(RL);
-      Pin_Cfgs[RL_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[RL_SPEED_SENSOR].pin] |= PORT_PCR_ISF(1);
+      Measure_Period(RL);
+      Clear_ISR_Flag(RL_SPEED_SENSOR);
    }
-   else if ((Pin_Cfgs[FR_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[FR_SPEED_SENSOR].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
+   if (ISR_Flag_Is_Set(FR_SPEED_SENSOR))
    {
-      Record_Pulse_Info(FR);
-      Pin_Cfgs[FR_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[FR_SPEED_SENSOR].pin] |= PORT_PCR_ISF(1);
+      Measure_Period(FR);
+      Clear_ISR_Flag(FR_SPEED_SENSOR);
    }
    else
    {
@@ -114,16 +112,16 @@ void PORTC_IRQHandler(void)
 
 void PORTB_IRQHandler(void)
 {
-   /* Determine which wheel speed sensor caused the interrupt */
-   if ((Pin_Cfgs[RR_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[RR_SPEED_SENSOR].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
+   /* Determine which wheel speed sensor(s) caused the interrupt */
+   if (ISR_Flag_Is_Set(RR_SPEED_SENSOR))
    {
-      Record_Pulse_Info(RR);
-      Pin_Cfgs[RR_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[RR_SPEED_SENSOR].pin] |= PORT_PCR_ISF(1);
+      Measure_Period(RR);
+      Clear_ISR_Flag(RR_SPEED_SENSOR);
    }
-   else if ((Pin_Cfgs[FL_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[FL_SPEED_SENSOR].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
+   if (ISR_Flag_Is_Set(FL_SPEED_SENSOR))
    {
-      Record_Pulse_Info(FL);
-      Pin_Cfgs[FL_SPEED_SENSOR].pbase->PCR[Pin_Cfgs[FL_SPEED_SENSOR].pin] |= PORT_PCR_ISF(1);
+      Measure_Period(FL);
+      Clear_ISR_Flag(FL_SPEED_SENSOR);
    }
    else
    {
@@ -132,65 +130,26 @@ void PORTB_IRQHandler(void)
 }
 }
 
-static inline void Record_Pulse_Info(uint8_t pos)
+static inline void Measure_Period(Wheel_T pos)
 {
-   uint16_t temp_cnt;
-
-   if (START == Pulse_Timing[pos].meas_type)
+   if (START == Encoder_Period[pos].meas_type)
    {
-      Pulse_Timing[pos].start_cnt = (uint16_t)FTM1->CNT;
-      Pulse_Timing[pos].meas_type = END;
+      Encoder_Period[pos].start_cnt = (uint16_t) FTM1->CNT;
+      Encoder_Period[pos].meas_type = END;
    }
    else
    {
-      /* Sample the period as many times as possible */
-      if (Pulses[pos] < MAX_MEASUREMENTS)
-      {
-         temp_cnt = (uint16_t)FTM1->CNT - Pulse_Timing[pos].start_cnt;
-
-         if (temp_cnt > MIN_PERIOD_CNTS)
-         {
-            Pulse_Timing[pos].elapsed_cnt[Pulses[pos]] = temp_cnt;
-            Pulses[pos]++;
-         }
-
-         Pulse_Timing[pos].meas_type = START;
-      }
-      else
-      {
-         /* Shouldn't happen */
-         assert(false);
-      }
+      Encoder_Period[pos].period_cnt = (uint16_t) LP_Filter(Encoder_Period[pos].period_cnt, (uint16_t) FTM1->CNT, FILTER_ALPHA);
+      Encoder_Period[pos].meas_type  = START;
    }
 }
 
-static inline float Compute_Speed(uint8_t pos, float current_speed)
+static inline float Period_2_Speed(Wheel_T pos)
 {
-   float temp = 0;
+   float temp = 0.0f;
 
-   if (Pulses[pos])
-   {
-      Pulse_Timing[pos].num_zero_meas = 0;
+   temp = RAD_PER_REV/(PULSES_PER_REV*Encoder_Period[pos].period_cnt*CLK_PERIOD);
 
-      /* Compute the average period over all the available measurements */
-      for (uint8_t i=0; i<Pulses[pos]; i++)
-      {
-         temp += RAD_PER_REV/(PULSES_PER_REV*Pulse_Timing[pos].elapsed_cnt[i]*CLK_PERIOD);
-      }
-
-      temp /= Pulses[pos];
-      Pulses[pos] = 0;
-   }
-   else if (Pulse_Timing[pos].num_zero_meas < ZERO_SPEED_DELAY)
-   {
-      Pulse_Timing[pos].num_zero_meas++;
-      temp = current_speed;
-   }
-   else
-   {
-      temp = 0.0f;
-   }
-
-   Pulse_Timing[pos].meas_type = START;
    return temp;
 }
+

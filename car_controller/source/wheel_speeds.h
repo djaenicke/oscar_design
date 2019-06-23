@@ -25,7 +25,8 @@ typedef struct
    float fl;
 } Wheel_Speeds_T;
 
-void Init_Wheel_Speed_Sensors(void);
-void Get_Wheel_Speeds(Wheel_Speeds_T * speeds);
+extern void Init_Wheel_Speed_Sensors(void);
+extern void Get_Wheel_Speeds(Wheel_Speeds_T * speeds);
+extern void Zero_Wheel_Speeds(void);
 
 #endif /* WHEEL_SPEEDS_H_ */
