@@ -43,6 +43,7 @@ product: Pins v4.0
 #include "pin_mux.h"
 #include "fsl_port.h"
 #include "io_abstraction.h"
+#include "interrupt_prios.h"
 
 /**
  * @brief Set up and initialize all required blocks and functions related to the board hardware.
@@ -136,5 +137,5 @@ void BOARD_InitBootPins(void)
    PORT_SetPinConfig(PORTE, 6, &porte6_pin7_config);   /* PORTE6 (pin 7) is configured as PTE6 */
 
    CLOCK_EnableClock(kCLOCK_Uart0);
-   NVIC_SetPriority(UART0_RX_TX_IRQn, 5);
+   NVIC_SetPriority(UART0_RX_TX_IRQn, UART0_INT_PRIO);
 }

@@ -58,6 +58,7 @@
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
 #include "logging.h"
+#include "interrupt_prios.h"
 
 /*******************************************************************************
  * Definitions
@@ -95,7 +96,7 @@ int main(void)
 
    /* Init FSL debug console. */
    BOARD_InitDebugConsole();
-   NVIC_SetPriority(BOARD_SDHC_IRQ, 5U);
+   NVIC_SetPriority(BOARD_SDHC_IRQ, SDHC_INT_PRIO);
    SYSMPU_Enable(SYSMPU, false);
 
    Init_App();
@@ -116,4 +117,6 @@ void Init_App(void)
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
    Bluetooth_Serial_Open();
+
+   NVIC_SetPriorityGrouping(0U);
 }

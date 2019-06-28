@@ -10,6 +10,7 @@
 #include "clock_config.h"
 #include "wheel_speeds.h"
 #include "battery_monitor.h"
+#include "low_pass_filter.h"
 
 #include "FreeRTOS.h"
 #include "task.h"

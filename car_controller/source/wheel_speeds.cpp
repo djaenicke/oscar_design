@@ -11,10 +11,10 @@
 #include "io_abstraction.h"
 #include "assert.h"
 #include "fsl_ftm.h"
-#include "low_pass_filter.h"
+#include "interrupt_prios.h"
 
 #define ISR_Flag_Is_Set(pos) ((Pin_Cfgs[pos].pbase->PCR[Pin_Cfgs[pos].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
-#define Clear_ISR_Flag(pos)  Pin_Cfgs[pos].pbase->PCR[Pin_Cfgs[pos].pin] |= PORT_PCR_ISF(1);
+#define Clear_ISR_Flag(pos)  Pin_Cfgs[pos].pbase->PCR[Pin_Cfgs[pos].pin] |= PORT_PCR_ISF(1)
 
 #define PULSES_PER_REV (20.0f)
 #define RAD_PER_REV    (6.2831853f)
@@ -56,8 +56,8 @@ void Init_Wheel_Speed_Sensors(void)
    PORT_SetPinInterruptConfig(Pin_Cfgs[FR_SPEED_SENSOR].pbase, Pin_Cfgs[FR_SPEED_SENSOR].pin, p_int_cfg);
    PORT_SetPinInterruptConfig(Pin_Cfgs[FL_SPEED_SENSOR].pbase, Pin_Cfgs[FL_SPEED_SENSOR].pin, p_int_cfg);
 
-   NVIC_SetPriority(PORTB_IRQn, 2);
-   NVIC_SetPriority(PORTC_IRQn, 2);
+   NVIC_SetPriority(PORTB_IRQn, ENCODER_INT_PRIO);
+   NVIC_SetPriority(PORTC_IRQn, ENCODER_INT_PRIO);
 
    PORT_ClearPinsInterruptFlags(PORTB, 0xFFFFFFFF);
    EnableIRQ(PORTB_IRQn);
@@ -104,10 +104,6 @@ void PORTC_IRQHandler(void)
       Measure_Period(FR);
       Clear_ISR_Flag(FR_SPEED_SENSOR);
    }
-   else
-   {
-      assert(false);
-   }
 }
 
 void PORTB_IRQHandler(void)
@@ -123,10 +119,6 @@ void PORTB_IRQHandler(void)
       Measure_Period(FL);
       Clear_ISR_Flag(FL_SPEED_SENSOR);
    }
-   else
-   {
-      assert(false);
-   }
 }
 }
 
@@ -139,7 +131,7 @@ static inline void Measure_Period(Wheel_T pos)
    }
    else
    {
-      Encoder_Period[pos].period_cnt = (uint16_t) LP_Filter(Encoder_Period[pos].period_cnt, (uint16_t) FTM1->CNT, FILTER_ALPHA);
+      Encoder_Period[pos].period_cnt = (uint16_t) FTM1->CNT - Encoder_Period[pos].start_cnt;
       Encoder_Period[pos].meas_type  = START;
    }
 }
@@ -148,7 +140,10 @@ static inline float Period_2_Speed(Wheel_T pos)
 {
    float temp = 0.0f;
 
-   temp = RAD_PER_REV/(PULSES_PER_REV*Encoder_Period[pos].period_cnt*CLK_PERIOD);
+   if (Encoder_Period[pos].period_cnt)
+   {
+      temp = RAD_PER_REV/(PULSES_PER_REV*Encoder_Period[pos].period_cnt*CLK_PERIOD);
+   }
 
    return temp;
 }

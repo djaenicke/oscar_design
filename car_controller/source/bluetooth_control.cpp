@@ -9,6 +9,7 @@
 #include "motor_controls.h"
 #include "logging.h"
 #include "assert.h"
+#include "interrupt_prios.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -30,7 +31,7 @@ void Bluetooth_Serial_Open(void)
 
     status = UART_Init(UART4, &UART_Cfg, CLOCK_GetFreq(kCLOCK_BusClk));
 
-    NVIC_SetPriority(UART4_RX_TX_IRQn, 3);
+    NVIC_SetPriority(UART4_RX_TX_IRQn, UART4_INT_PRIO);
 
     UART_EnableInterrupts(UART4, kUART_RxDataRegFullInterruptEnable | kUART_RxOverrunInterruptEnable);
     EnableIRQ(UART4_RX_TX_IRQn);
