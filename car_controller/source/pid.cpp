@@ -34,6 +34,8 @@ float PID::Step(float sp, float fb)
 
    u = (kp * e) + (ki * integral) + (kd * d);
 
+   last_e = e;
+
    return (u);
 }
 

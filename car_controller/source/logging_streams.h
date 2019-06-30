@@ -26,10 +26,13 @@ typedef struct
    uint32_t cnt;
    Wheel_Speeds_T raw_speeds;
    Wheel_Speeds_T filt_speeds;
-   float r_speed_fb;
-   float l_speed_fb;
    float meas_vbatt;
    float max_vbatt;
+   float max_speed;
+   float r_speed_sp;
+   float l_speed_sp;
+   float r_speed_fb;
+   float l_speed_fb;
    uint32_t end_pattern;
 } Motor_Controls_Stream_T;
 

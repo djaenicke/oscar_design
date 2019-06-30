@@ -5,10 +5,13 @@
  *      Author: Devin
  */
 
+#include <stdio.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include "dc_motor.h"
+#include "fsl_debug_console.h"
 #include "pid.h"
 #include "clock_config.h"
 #include "wheel_speeds.h"
@@ -25,13 +28,12 @@
 #define Ke 0.22f
 #define DRIVER_VDROP 2.0f
 
-/* TODO - tune these */
-#define OPEN_LOOP
-#define Kp 1.0f
-#define Ki 1.0f
-#define Kd 0.0f
+//#define OPEN_LOOP
+#define Kp 0.2762472f
+#define Ki 5.5249447f
+#define Kd 0.0034531f
 
-#define dt 0.025
+#define CYCLE_TIME 0.05f
 #define S_2_MS 1000
 
 #define FILT_ALPHA 0.4f
@@ -59,6 +61,12 @@ void Init_Motor_Controls(void)
 
    L_Motor.Set_Location(LEFT_SIDE);
    R_Motor.Set_Location(RIGHT_SIDE);
+
+
+   pid_cals.k_p = Kp;
+   pid_cals.k_i = Ki;
+   pid_cals.k_d = Kd;
+   pid_cals.dt  = CYCLE_TIME;
 
    L_PID.Init(&pid_cals);
    R_PID.Init(&pid_cals);
@@ -89,7 +97,12 @@ void Init_Motor_Controls(void)
 void Motor_Controls_Task(void *pvParameters)
 {
    size_t bytes_sent;
-
+   float v_r_sp, v_l_sp;   /* Set point */
+   uint8_t u_r_dc, u_l_dc; /* Actuation duty cycles */
+#ifndef OPEN_LOOP
+   float v_r_fb, v_l_fb;   /* Feedback */
+   float u_r, u_l;         /* Actuation voltages */
+#endif
    while(1)
    {
       MC_Stream_Data.cnt++;
@@ -102,22 +115,56 @@ void Motor_Controls_Task(void *pvParameters)
       Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
       Filter_Wheel_Speeds();
 
+      /* Determine the maximum speed based on the current battery voltage */
+      MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
+      MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
+      MC_Stream_Data.max_speed  = MC_Stream_Data.max_vbatt * Kv;
+
+      /* Saturate the speed set point */
+      MC_Stream_Data.r_speed_sp = MC_Stream_Data.r_speed_sp > MC_Stream_Data.max_speed ? MC_Stream_Data.max_speed : MC_Stream_Data.r_speed_sp;
+      MC_Stream_Data.l_speed_sp = MC_Stream_Data.l_speed_sp > MC_Stream_Data.max_speed ? MC_Stream_Data.max_speed : MC_Stream_Data.l_speed_sp;
+
+      /* Compute the set points */
+      v_r_sp = MC_Stream_Data.r_speed_sp * Ke;
+      v_l_sp = MC_Stream_Data.l_speed_sp * Ke;
+
       /* Average the wheel speeds to treat the 4 motors as 2 */
       MC_Stream_Data.r_speed_fb = (MC_Stream_Data.filt_speeds.rr + MC_Stream_Data.filt_speeds.fr)/2;
       MC_Stream_Data.l_speed_fb = (MC_Stream_Data.filt_speeds.rl + MC_Stream_Data.filt_speeds.fl)/2;
 
-      MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
-      MC_Stream_Data.max_vbatt = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
-
 #ifndef OPEN_LOOP
-      R_PID.Step(???, MC_Stream_Data.r_speed_fb, dt);
-      L_PID.Step(???, MC_Stream_Data.l_speed_fb, dt);
+      /* Compute the feedback */
+      v_r_fb = MC_Stream_Data.r_speed_fb * Ke;
+      v_l_fb = MC_Stream_Data.r_speed_fb * Ke;
+
+      /* Run the PID controllers */
+      u_r = R_PID.Step(v_r_sp, v_r_fb);
+      u_l = L_PID.Step(v_l_sp, v_l_fb);
+
+      u_r = u_r > Min_Voltage ? u_r : Min_Voltage;
+      u_l = u_l > Min_Voltage ? u_l : Min_Voltage;
+
+      /* Convert the voltages to duty cycles */
+      u_r_dc = (uint8_t)(u_r * (100/MC_Stream_Data.max_vbatt));
+      u_l_dc = (uint8_t)(u_l * (100/MC_Stream_Data.max_vbatt));
 #endif
+
+#ifdef OPEN_LOOP
+      /* Convert the voltages to duty cycles */
+      v_r_sp = v_r_sp > Min_Voltage ? v_r_sp : Min_Voltage;
+      v_l_sp = v_l_sp > Min_Voltage ? v_l_sp : Min_Voltage;
+
+      u_r_dc = (uint8_t)(v_r_sp * (100/MC_Stream_Data.max_vbatt));
+      u_l_dc = (uint8_t)(v_l_sp * (100/MC_Stream_Data.max_vbatt));
+#endif
+
+      L_Motor.Set_DC(u_r_dc);
+      R_Motor.Set_DC(u_l_dc);
 
       bytes_sent = xStreamBufferSend(MC_Stream.handle, (void *) &MC_Stream_Data, sizeof(MC_Stream_Data), 0);
       assert(bytes_sent == sizeof(MC_Stream_Data));
 
-      vTaskDelay(pdMS_TO_TICKS(dt*S_2_MS));
+      vTaskDelay(pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));
    }
 }
 
@@ -131,32 +178,36 @@ static inline void Filter_Wheel_Speeds(void)
 
 void Forward(void)
 {
-   L_Motor.Set_DC(100);
-   R_Motor.Set_DC(100);
+   MC_Stream_Data.r_speed_sp = 20;
+   MC_Stream_Data.l_speed_sp = 20;
+
    L_Motor.Set_Direction(FORWARD);
    R_Motor.Set_Direction(FORWARD);
 }
 
 void Backward(void)
 {
-   L_Motor.Set_DC(100);
-   R_Motor.Set_DC(100);
+   MC_Stream_Data.r_speed_sp = 20;
+   MC_Stream_Data.l_speed_sp = 20;
+
    L_Motor.Set_Direction(REVERSE);
    R_Motor.Set_Direction(REVERSE);
 }
 
 void Left(void)
 {
-   L_Motor.Set_DC(60);
-   R_Motor.Set_DC(60);
+   MC_Stream_Data.r_speed_sp = 17;
+   MC_Stream_Data.l_speed_sp = 17;
+
    L_Motor.Set_Direction(REVERSE);
    R_Motor.Set_Direction(FORWARD);
 }
 
 void Right(void)
 {
-   L_Motor.Set_DC(60);
-   R_Motor.Set_DC(60);
+   MC_Stream_Data.r_speed_sp = 17;
+   MC_Stream_Data.l_speed_sp = 17;
+
    L_Motor.Set_Direction(FORWARD);
    R_Motor.Set_Direction(REVERSE);
 }

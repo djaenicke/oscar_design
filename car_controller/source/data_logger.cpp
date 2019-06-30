@@ -70,11 +70,8 @@ void Log_MC_Stream_Task(void *pvParameters)
 
    while(1)
    {
-      br = xStreamBufferReceive(MC_Stream.handle,
-                                (void *) &MC_Stream_Data,
-                                sizeof(MC_Stream_Data),
-                                portMAX_DELAY);
-
+      br = xStreamBufferReceive(MC_Stream.handle, (void *) &MC_Stream_Data,
+                                sizeof(MC_Stream_Data), portMAX_DELAY);
       assert(br==sizeof(MC_Stream_Data));
 
       if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, pdMS_TO_TICKS(5)))
