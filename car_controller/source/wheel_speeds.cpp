@@ -21,12 +21,14 @@
 #define CLK_PERIOD     (0.00002048f)
 #define START          ((uint8_t)0)
 #define END            ((uint8_t)1)
-#define FILTER_ALPHA   (0.5f) /* TODO - update this to a better value */
+
+#define MIN_PERIOD 512
 
 typedef struct {
    uint8_t  meas_type;
+   uint8_t  num_meas;
    uint16_t start_cnt;
-   uint16_t period_cnt;
+   uint16_t period_cnt[5];
 } Period_T;
 
 static volatile Period_T Encoder_Period[NUM_WHEELS] = {0};
@@ -85,7 +87,11 @@ void Zero_Wheel_Speeds(void)
 {
    for (uint8_t i=0; i<(uint8_t)NUM_WHEELS; i++)
    {
-      Encoder_Period[i].period_cnt = (uint16_t) 0;
+      for (uint8_t j=0; j<(uint8_t)5; j++)
+      {
+         Encoder_Period[i].period_cnt[j] = (uint16_t) 0;
+      }
+      Encoder_Period[i].meas_type = START;
    }
 }
 
@@ -124,6 +130,8 @@ void PORTB_IRQHandler(void)
 
 static inline void Measure_Period(Wheel_T pos)
 {
+   uint16_t period_cnt = 0;
+
    if (START == Encoder_Period[pos].meas_type)
    {
       Encoder_Period[pos].start_cnt = (uint16_t) FTM1->CNT;
@@ -131,18 +139,34 @@ static inline void Measure_Period(Wheel_T pos)
    }
    else
    {
-      Encoder_Period[pos].period_cnt = (uint16_t) FTM1->CNT - Encoder_Period[pos].start_cnt;
-      Encoder_Period[pos].meas_type  = START;
+      period_cnt = ((uint16_t) FTM1->CNT) - Encoder_Period[pos].start_cnt;
+
+      if (period_cnt > MIN_PERIOD)
+      {
+         Encoder_Period[pos].period_cnt[Encoder_Period[pos].num_meas] = ((uint16_t) FTM1->CNT) - Encoder_Period[pos].start_cnt;
+         Encoder_Period[pos].num_meas++;
+      }
+
+      Encoder_Period[pos].meas_type = START;
    }
 }
 
 static inline float Period_2_Speed(Wheel_T pos)
 {
+   uint16_t period = 0;
    float temp = 0.0f;
 
-   if (Encoder_Period[pos].period_cnt)
+   for (uint8_t i=0; i<Encoder_Period[pos].num_meas; i++)
    {
-      temp = RAD_PER_REV/(PULSES_PER_REV*Encoder_Period[pos].period_cnt*CLK_PERIOD);
+      period += Encoder_Period[pos].period_cnt[i];
+      Encoder_Period[pos].period_cnt[i] = 0;
+   }
+
+   if (period)
+   {
+      period /= Encoder_Period[pos].num_meas;
+      temp = RAD_PER_REV/(PULSES_PER_REV*period*CLK_PERIOD);
+      Encoder_Period[pos].num_meas = 0;
    }
 
    return temp;

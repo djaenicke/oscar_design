@@ -68,7 +68,7 @@ void Data_Logging_Task(void *pvParameters)
    static uint32_t cnt;
    float vbatt = 0.0;
    Wheel_Speeds_T wheel_speeds;
-   Wheel_Speeds_T filt_wheel_speeds;
+   static Wheel_Speeds_T filt_wheel_speeds;
    uint32_t bw = 0;
 
    while(1)
@@ -78,9 +78,9 @@ void Data_Logging_Task(void *pvParameters)
       Get_Wheel_Speeds(&wheel_speeds);
 
       filt_wheel_speeds.rr = LP_Filter(wheel_speeds.rr, filt_wheel_speeds.rr, 0.4);
-      filt_wheel_speeds.rr = LP_Filter(wheel_speeds.rl, filt_wheel_speeds.rl, 0.4);
-      filt_wheel_speeds.rr = LP_Filter(wheel_speeds.fr, filt_wheel_speeds.fr, 0.4);
-      filt_wheel_speeds.rr = LP_Filter(wheel_speeds.fl, filt_wheel_speeds.fl, 0.4);
+      filt_wheel_speeds.rl = LP_Filter(wheel_speeds.rl, filt_wheel_speeds.rl, 0.4);
+      filt_wheel_speeds.fr = LP_Filter(wheel_speeds.fr, filt_wheel_speeds.fr, 0.4);
+      filt_wheel_speeds.fl = LP_Filter(wheel_speeds.fl, filt_wheel_speeds.fl, 0.4);
 
       if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, portMAX_DELAY))
       {
