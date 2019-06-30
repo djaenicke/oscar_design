@@ -22,13 +22,14 @@
 #define START          ((uint8_t)0)
 #define END            ((uint8_t)1)
 
+#define MAX_MEASUREMENTS 5
 #define MIN_PERIOD 512
 
 typedef struct {
    uint8_t  meas_type;
    uint8_t  num_meas;
    uint16_t start_cnt;
-   uint16_t period_cnt[5];
+   uint16_t period_cnt[MAX_MEASUREMENTS];
 } Period_T;
 
 static volatile Period_T Encoder_Period[NUM_WHEELS] = {0};
@@ -87,7 +88,7 @@ void Zero_Wheel_Speeds(void)
 {
    for (uint8_t i=0; i<(uint8_t)NUM_WHEELS; i++)
    {
-      for (uint8_t j=0; j<(uint8_t)5; j++)
+      for (uint8_t j=0; j<(uint8_t)MAX_MEASUREMENTS; j++)
       {
          Encoder_Period[i].period_cnt[j] = (uint16_t) 0;
       }
