@@ -14,6 +14,7 @@ typedef struct
    float k_i;
    float k_d;
    float dt;
+   float tol;
 }PID_Cals_T;
 
 class PID
@@ -23,12 +24,13 @@ private:
    float ki;
    float kd;
    float dt;
+   float tol; /* Tolerance */
+public:
    float last_e;
    float integral;
-public:
    void  Init(PID_Cals_T * cals);
-   float Step(float sp, float fb);
-   void  Reset_Integrator(void);
+   float Step(float sp, float fb, float max, float min);
+   void  Reset(void);
 };
 
 #endif /* PID_H_ */

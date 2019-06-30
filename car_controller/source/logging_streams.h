@@ -29,10 +29,19 @@ typedef struct
    float meas_vbatt;
    float max_vbatt;
    float max_speed;
+   float min_speed;
    float r_speed_sp;
    float l_speed_sp;
    float r_speed_fb;
    float l_speed_fb;
+   float r_error;
+   float l_error;
+   float r_integral;
+   float l_integral;
+   float u_r;
+   float u_l;
+   uint8_t u_r_dc;
+   uint8_t u_l_dc;
    uint32_t end_pattern;
 } Motor_Controls_Stream_T;
 

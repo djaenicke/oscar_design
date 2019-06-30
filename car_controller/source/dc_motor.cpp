@@ -32,6 +32,7 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
    switch (new_dir)
    {
       case REVERSE:
+         stopped = false;
          direction = REVERSE;
          switch (loc)
          {
@@ -48,6 +49,7 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
          }
          break;
       case FORWARD:
+         stopped = false;
          direction = FORWARD;
          switch (loc)
          {
@@ -75,11 +77,6 @@ Direction_T DC_Motor::Get_Direction(void)
 
 void DC_Motor::Set_DC(uint8_t percent)
 {
-   if (percent > 0)
-   {
-      stopped = false;
-   }
-
    FTM_UpdatePwmDutycycle(FTM0, pwm_channel, kFTM_EdgeAlignedPwm, percent);
    FTM_SetSoftwareTrigger(FTM0, true);
 }

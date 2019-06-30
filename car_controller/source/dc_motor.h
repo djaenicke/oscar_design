@@ -31,7 +31,7 @@ private:
    Direction_T direction = UNKNOWN_DIR;
 public:
    ftm_chnl_t pwm_channel;
-   bool stopped;
+   bool stopped = true;
 
    void Set_Location(Location_T loc);
    void Set_Direction(Direction_T dir);

@@ -96,6 +96,30 @@ void Zero_Wheel_Speeds(void)
    }
 }
 
+void Zero_Left_Wheel_Speeds(void)
+{
+   Encoder_Period[RL].meas_type = START;
+   Encoder_Period[FL].meas_type = START;
+
+   for (uint8_t i=0; i<(uint8_t)MAX_MEASUREMENTS; i++)
+   {
+      Encoder_Period[RL].period_cnt[i] = (uint16_t) 0;
+      Encoder_Period[FL].period_cnt[i] = (uint16_t) 0;
+   }
+}
+
+void Zero_Right_Wheel_Speeds(void)
+{
+   Encoder_Period[RR].meas_type = START;
+   Encoder_Period[FR].meas_type = START;
+
+   for (uint8_t i=0; i<(uint8_t)MAX_MEASUREMENTS; i++)
+   {
+      Encoder_Period[RR].period_cnt[i] = (uint16_t) 0;
+      Encoder_Period[FR].period_cnt[i] = (uint16_t) 0;
+   }
+}
+
 extern "C"
 {
 void PORTC_IRQHandler(void)
