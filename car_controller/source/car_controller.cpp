@@ -32,6 +32,7 @@
  * @file    car_controller.cpp
  * @brief   Application entry point.
  */
+#include <data_logger.h>
 #include <stdio.h>
 
 /* SDK includes */
@@ -57,16 +58,16 @@
 #include "wheel_speeds.h"
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
-#include "logging.h"
 #include "interrupt_prios.h"
+#include "logging_streams.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define SD_CARD_INIT_TASK_PRIO   (configMAX_PRIORITIES - 1U)
-#define DATA_LOGGING_TASK_PRIO   (configMAX_PRIORITIES - 2U)
-#define MOTOR_CONTROLS_TASK_PRIO (configMAX_PRIORITIES - 3U)
-#define BLUETOOTH_CMD_TASK_PRIO  (configMAX_PRIORITIES - 4U)
+#define SD_CARD_INIT_TASK_PRIO    (configMAX_PRIORITIES - 1U)
+#define MOTOR_CONTROLS_TASK_PRIO  (configMAX_PRIORITIES - 2U)
+#define MC_DATA_LOGGING_TASK_PRIO (configMAX_PRIORITIES - 3U)
+#define BLUETOOTH_CMD_TASK_PRIO   (configMAX_PRIORITIES - 4U)
 
 typedef struct Task_Cfg_Tag
 {
@@ -103,10 +104,10 @@ int main(void)
    Set_GPIO(BLUE_LED, LOW);
 
    /* Create OS Tasks */
-   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1024, NULL, MOTOR_CONTROLS_TASK_PRIO, NULL);
-   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,  NULL);
-   xTaskCreate(SD_Card_Init_Task,   "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,   NULL);
-   xTaskCreate(Data_Logging_Task,   "Data_Logging_Task", 1024, NULL, DATA_LOGGING_TASK_PRIO,   NULL);
+   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1024, NULL, MOTOR_CONTROLS_TASK_PRIO,  NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,   NULL);
+   xTaskCreate(SD_Card_Init_Task,   "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,    NULL);
+   xTaskCreate(Log_MC_Stream_Task,  "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO, NULL);
 
    vTaskStartScheduler();
 }
@@ -117,6 +118,7 @@ void Init_App(void)
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
    Bluetooth_Serial_Open();
+   Create_Streams();
 
    NVIC_SetPriorityGrouping(0U);
 }

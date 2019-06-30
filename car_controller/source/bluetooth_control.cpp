@@ -5,14 +5,14 @@
  *      Author: Devin
  */
 
-#include "fsl_uart.h"
-#include "motor_controls.h"
-#include "logging.h"
-#include "assert.h"
-#include "interrupt_prios.h"
-
 #include "FreeRTOS.h"
 #include "task.h"
+
+#include "data_logger.h"
+#include "fsl_uart.h"
+#include "motor_controls.h"
+#include "assert.h"
+#include "interrupt_prios.h"
 
 #define RX_BUFFER_SIZE 10
 

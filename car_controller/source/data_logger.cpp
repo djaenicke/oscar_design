@@ -1,5 +1,5 @@
 /*
- * logging.cpp
+ * data_logger.cpp
  *
  *  Created on: Jun 16, 2019
  *      Author: Devin
@@ -7,6 +7,11 @@
 
 #include <stdio.h>
 #include <string.h>
+
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+
 #include "fsl_sd.h"
 #include "fsl_debug_console.h"
 #include "ff.h"
@@ -15,14 +20,9 @@
 #include "board.h"
 #include "battery_monitor.h"
 #include "wheel_speeds.h"
-#include "low_pass_filter.h"
-
+#include "logging_streams.h"
 #include "pin_mux.h"
 #include "clock_config.h"
-
-#include "FreeRTOS.h"
-#include "semphr.h"
-#include "task.h"
 
 /*******************************************************************************
  * Definitions
@@ -56,58 +56,39 @@ static volatile bool Card_Insert_Status = false;
 static SemaphoreHandle_t Card_Detect_Semaphore = NULL;
 static SemaphoreHandle_t File_Access_Semaphore = NULL;
 
-static const uint32_t END_PATTERN = 0xFFFFFFFF;
+static Motor_Controls_Stream_T MC_Stream_Data;
 
 static int Init_File_System(void);
 
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
-void Data_Logging_Task(void *pvParameters)
+void Log_MC_Stream_Task(void *pvParameters)
 {
-   static uint32_t cnt;
-   float vbatt = 0.0;
-   Wheel_Speeds_T wheel_speeds;
-   static Wheel_Speeds_T filt_wheel_speeds;
+   size_t br = 0;
    uint32_t bw = 0;
 
    while(1)
    {
-      vbatt = Read_Battery_Voltage();
+      br = xStreamBufferReceive(MC_Stream.handle,
+                                (void *) &MC_Stream_Data,
+                                sizeof(MC_Stream_Data),
+                                portMAX_DELAY);
 
-      Get_Wheel_Speeds(&wheel_speeds);
+      assert(br==sizeof(MC_Stream_Data));
 
-      filt_wheel_speeds.rr = LP_Filter(wheel_speeds.rr, filt_wheel_speeds.rr, 0.4);
-      filt_wheel_speeds.rl = LP_Filter(wheel_speeds.rl, filt_wheel_speeds.rl, 0.4);
-      filt_wheel_speeds.fr = LP_Filter(wheel_speeds.fr, filt_wheel_speeds.fr, 0.4);
-      filt_wheel_speeds.fl = LP_Filter(wheel_speeds.fl, filt_wheel_speeds.fl, 0.4);
-
-      if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, portMAX_DELAY))
+      if (pdTRUE == xSemaphoreTake(File_Access_Semaphore, pdMS_TO_TICKS(5)))
       {
          if (SD_IsCardPresent(&g_sd) && OPEN == File_State)
          {
-            f_write(&File_Object, &cnt,                  sizeof(uint32_t), (UINT *)&bw);
-            f_write(&File_Object, &vbatt,                sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.rr,      sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.rl,      sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.fr,      sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &wheel_speeds.fl,      sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &filt_wheel_speeds.rr, sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &filt_wheel_speeds.rl, sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &filt_wheel_speeds.fr, sizeof(float),    (UINT *)&bw);
-            f_write(&File_Object, &filt_wheel_speeds.fl, sizeof(float),    (UINT *)&bw);
-
-            f_write(&File_Object, &END_PATTERN,     sizeof(uint32_t), (UINT *)&bw);
-            cnt++;
+            f_write(&File_Object, &MC_Stream_Data, sizeof(MC_Stream_Data), (UINT *)&bw);
+            assert(bw==sizeof(MC_Stream_Data));
          }
 
          xSemaphoreGive(File_Access_Semaphore);
       }
-      else
-      {
-         PRINTF("Failed to take semaphore.\r\n");
-      }
-      vTaskDelay(pdMS_TO_TICKS(50));
+
+      vTaskDelay(pdMS_TO_TICKS(5));
    }
 }
 
@@ -134,8 +115,6 @@ void SD_Card_Init_Task(void *pvParameters)
 
                if (Card_Inserted)
                {
-                  PRINTF("\r\nCard inserted.\r\n");
-
                   SD_PowerOnCard(g_sd.host.base, g_sd.usrParam.pwr);
 
                   if (-1 != Init_File_System())
@@ -143,11 +122,6 @@ void SD_Card_Init_Task(void *pvParameters)
                      xSemaphoreGive(File_Access_Semaphore);
                   }
                }
-            }
-
-            if (!Card_Inserted)
-            {
-               PRINTF("\r\nPlease insert a card into board.\r\n");
             }
          }
       }

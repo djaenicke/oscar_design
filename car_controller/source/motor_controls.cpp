@@ -5,15 +5,17 @@
  *      Author: Devin
  */
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "dc_motor.h"
 #include "pid.h"
 #include "clock_config.h"
 #include "wheel_speeds.h"
 #include "battery_monitor.h"
 #include "low_pass_filter.h"
-
-#include "FreeRTOS.h"
-#include "task.h"
+#include "logging_streams.h"
+#include "assert.h"
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
@@ -32,18 +34,21 @@
 #define dt 0.025
 #define S_2_MS 1000
 
+#define FILT_ALPHA 0.4f
+
 /* Motor objects */
 static DC_Motor L_Motor;
 static DC_Motor R_Motor;
 
 /* PID controller objects */
-#ifndef OPEN_LOOP
 static PID L_PID;
 static PID R_PID;
-#endif
 
 static const float Min_Voltage = 3.0; /* Motors require at least 3.0V */
-static float Max_Voltage;             /* Max voltage is dependent on the battery SoC */
+
+static Motor_Controls_Stream_T MC_Stream_Data;
+
+static inline void Filter_Wheel_Speeds(void);
 
 void Init_Motor_Controls(void)
 {
@@ -55,10 +60,8 @@ void Init_Motor_Controls(void)
    L_Motor.Set_Location(LEFT_SIDE);
    R_Motor.Set_Location(RIGHT_SIDE);
 
-#ifndef OPEN_LOOP
    L_PID.Init(&pid_cals);
    R_PID.Init(&pid_cals);
-#endif
 
    /* Left Side */
    ftmParam[0].chnlNumber = L_Motor.pwm_channel;
@@ -79,38 +82,51 @@ void Init_Motor_Controls(void)
 
    FTM_SetupPwm(FTM0, ftmParam, NUM_MOTORS, kFTM_EdgeAlignedPwm, PWM_FREQ, FTM_SOURCE_CLOCK);
    FTM_StartTimer(FTM0, kFTM_SystemClock);
+
+   MC_Stream_Data.end_pattern = END_PATTERN;
 }
 
 void Motor_Controls_Task(void *pvParameters)
 {
-   float vbatt;
-   Wheel_Speeds_T wheel_speeds;
-   static float r_speed_fb;
-   static float l_speed_fb;
+   size_t bytes_sent;
 
    while(1)
    {
-      Get_Wheel_Speeds(&wheel_speeds);
+      MC_Stream_Data.cnt++;
 
       if (L_Motor.stopped && R_Motor.stopped)
       {
          Zero_Wheel_Speeds();
       }
 
+      Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
+      Filter_Wheel_Speeds();
+
       /* Average the wheel speeds to treat the 4 motors as 2 */
-      r_speed_fb = (wheel_speeds.rr + wheel_speeds.fr)/2;
-      l_speed_fb = (wheel_speeds.rl + wheel_speeds.fl)/2;
+      MC_Stream_Data.r_speed_fb = (MC_Stream_Data.filt_speeds.rr + MC_Stream_Data.filt_speeds.fr)/2;
+      MC_Stream_Data.l_speed_fb = (MC_Stream_Data.filt_speeds.rl + MC_Stream_Data.filt_speeds.fl)/2;
+
+      MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
+      MC_Stream_Data.max_vbatt = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
 
 #ifndef OPEN_LOOP
-      R_PID.Step(???, r_speed_fb, dt);
-      L_PID.Step(???, l_speed_fb, dt);
+      R_PID.Step(???, MC_Stream_Data.r_speed_fb, dt);
+      L_PID.Step(???, MC_Stream_Data.l_speed_fb, dt);
 #endif
 
-      vbatt = Read_Battery_Voltage();
-      Max_Voltage = vbatt - DRIVER_VDROP;
+      bytes_sent = xStreamBufferSend(MC_Stream.handle, (void *) &MC_Stream_Data, sizeof(MC_Stream_Data), 0);
+      assert(bytes_sent == sizeof(MC_Stream_Data));
 
       vTaskDelay(pdMS_TO_TICKS(dt*S_2_MS));
    }
+}
+
+static inline void Filter_Wheel_Speeds(void)
+{
+   MC_Stream_Data.filt_speeds.rr = LP_Filter(MC_Stream_Data.raw_speeds.rr, MC_Stream_Data.filt_speeds.rr, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.rl = LP_Filter(MC_Stream_Data.raw_speeds.rl, MC_Stream_Data.filt_speeds.rl, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.fr = LP_Filter(MC_Stream_Data.raw_speeds.fr, MC_Stream_Data.filt_speeds.fr, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.fl = LP_Filter(MC_Stream_Data.raw_speeds.fl, MC_Stream_Data.filt_speeds.fl, FILT_ALPHA);
 }
 
 void Forward(void)
