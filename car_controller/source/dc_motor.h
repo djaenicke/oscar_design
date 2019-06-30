@@ -28,11 +28,14 @@ class DC_Motor
 {
 private:
    Location_T loc = UNKNOWN_LOC;
+   Direction_T direction = UNKNOWN_DIR;
 public:
    ftm_chnl_t pwm_channel;
+   bool stopped;
 
    void Set_Location(Location_T loc);
    void Set_Direction(Direction_T dir);
+   Direction_T Get_Direction(void);
    void Set_DC(uint8_t percent);
    void Freewheel(void);
    void Stop(void);

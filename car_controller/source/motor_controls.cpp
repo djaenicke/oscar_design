@@ -6,9 +6,11 @@
  */
 
 #include "dc_motor.h"
+#include "pid.h"
 #include "clock_config.h"
 #include "wheel_speeds.h"
 #include "battery_monitor.h"
+#include "low_pass_filter.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -21,26 +23,42 @@
 #define Ke 0.22f
 #define DRIVER_VDROP 2.0f
 
+/* TODO - tune these */
+#define OPEN_LOOP
+#define Kp 1.0f
+#define Ki 1.0f
+#define Kd 0.0f
+
+#define dt 0.025
+#define S_2_MS 1000
+
 /* Motor objects */
 static DC_Motor L_Motor;
 static DC_Motor R_Motor;
 
+/* PID controller objects */
+#ifndef OPEN_LOOP
+static PID L_PID;
+static PID R_PID;
+#endif
 
-static const float Min_Voltage = 3.0;         /* Motors require at least 3.0V */
-static float Max_Voltage;                     /* Max voltage is dependent on the battery SoC */
-
-static Wheel_Speeds_T Wheel_Speeds;
-static float R_Motor_Speed;
-static float L_Motor_Speed;
+static const float Min_Voltage = 3.0; /* Motors require at least 3.0V */
+static float Max_Voltage;             /* Max voltage is dependent on the battery SoC */
 
 void Init_Motor_Controls(void)
 {
    /* Configure the PWM outputs to allow speed control */
    ftm_config_t ftmInfo;
    ftm_chnl_pwm_signal_param_t ftmParam[NUM_MOTORS];
+   PID_Cals_T pid_cals;
 
    L_Motor.Set_Location(LEFT_SIDE);
    R_Motor.Set_Location(RIGHT_SIDE);
+
+#ifndef OPEN_LOOP
+   L_PID.Init(&pid_cals);
+   R_PID.Init(&pid_cals);
+#endif
 
    /* Left Side */
    ftmParam[0].chnlNumber = L_Motor.pwm_channel;
@@ -66,19 +84,32 @@ void Init_Motor_Controls(void)
 void Motor_Controls_Task(void *pvParameters)
 {
    float vbatt;
+   Wheel_Speeds_T wheel_speeds;
+   static float r_speed_fb;
+   static float l_speed_fb;
 
    while(1)
    {
-      //Get_Wheel_Speeds(&Wheel_Speeds); TODO: uncomment this
+      Get_Wheel_Speeds(&wheel_speeds);
+
+      if (L_Motor.stopped && R_Motor.stopped)
+      {
+         Zero_Wheel_Speeds();
+      }
 
       /* Average the wheel speeds to treat the 4 motors as 2 */
-      R_Motor_Speed = (Wheel_Speeds.rr + Wheel_Speeds.fr)/2;
-      L_Motor_Speed = (Wheel_Speeds.rl + Wheel_Speeds.fl)/2;
+      r_speed_fb = (wheel_speeds.rr + wheel_speeds.fr)/2;
+      l_speed_fb = (wheel_speeds.rl + wheel_speeds.fl)/2;
+
+#ifndef OPEN_LOOP
+      R_PID.Step(???, r_speed_fb, dt);
+      L_PID.Step(???, l_speed_fb, dt);
+#endif
 
       vbatt = Read_Battery_Voltage();
       Max_Voltage = vbatt - DRIVER_VDROP;
 
-      vTaskDelay(pdMS_TO_TICKS(1000)); //TODO: change to 25
+      vTaskDelay(pdMS_TO_TICKS(dt*S_2_MS));
    }
 }
 
