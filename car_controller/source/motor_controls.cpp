@@ -33,7 +33,7 @@
 #define Kp 0.2762472f
 #define Ki 5.5249447f
 #define Kd 0.0034531f
-#define TOLERANCE 0.5f /* rad/s */
+#define TOLERANCE 0.0f /* rad/s - TODO: update*/
 
 #define CYCLE_TIME 0.05f
 #define S_2_MS 1000
@@ -110,15 +110,18 @@ void Motor_Controls_Task(void *pvParameters)
 
       if (L_Motor.stopped && R_Motor.stopped)
       {
+         MC_Stream_Data.raw_speeds.l = 0;
+         MC_Stream_Data.raw_speeds.r = 0;
+
          Zero_Wheel_Speed(R);
          Zero_Wheel_Speed(L);
       }
+      else
+      {
+         Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
+      }
 
-      Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
       Filter_Wheel_Speeds();
-
-      MC_Stream_Data.r_speed_fb = MC_Stream_Data.filt_speeds.r;
-      MC_Stream_Data.l_speed_fb = MC_Stream_Data.filt_speeds.l;
 
       /* Determine the maximum speed based on the current battery voltage */
       MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
@@ -127,11 +130,17 @@ void Motor_Controls_Task(void *pvParameters)
       MC_Stream_Data.min_speed  = Min_Voltage * Kv;
 
       /* Saturate the speed set point */
-      MC_Stream_Data.r_speed_sp = MC_Stream_Data.r_speed_sp > MC_Stream_Data.max_speed ? MC_Stream_Data.max_speed : MC_Stream_Data.r_speed_sp;
-      MC_Stream_Data.l_speed_sp = MC_Stream_Data.l_speed_sp > MC_Stream_Data.max_speed ? MC_Stream_Data.max_speed : MC_Stream_Data.l_speed_sp;
+      MC_Stream_Data.r_speed_sp = MC_Stream_Data.r_speed_sp > MC_Stream_Data.max_speed ? \
+                                  MC_Stream_Data.max_speed : MC_Stream_Data.r_speed_sp;
 
-      MC_Stream_Data.r_speed_sp = MC_Stream_Data.r_speed_sp < MC_Stream_Data.min_speed ? MC_Stream_Data.min_speed : MC_Stream_Data.r_speed_sp;
-      MC_Stream_Data.l_speed_sp = MC_Stream_Data.l_speed_sp < MC_Stream_Data.min_speed ? MC_Stream_Data.min_speed : MC_Stream_Data.l_speed_sp;
+      MC_Stream_Data.l_speed_sp = MC_Stream_Data.l_speed_sp > MC_Stream_Data.max_speed ? \
+                                  MC_Stream_Data.max_speed : MC_Stream_Data.l_speed_sp;
+
+      MC_Stream_Data.r_speed_sp = MC_Stream_Data.r_speed_sp < MC_Stream_Data.min_speed ? \
+                                  MC_Stream_Data.min_speed : MC_Stream_Data.r_speed_sp;
+
+      MC_Stream_Data.l_speed_sp = MC_Stream_Data.l_speed_sp < MC_Stream_Data.min_speed ? \
+                                  MC_Stream_Data.min_speed : MC_Stream_Data.l_speed_sp;
 
       /* Compute the set points */
       v_r_sp = MC_Stream_Data.r_speed_sp * Ke;
@@ -139,8 +148,8 @@ void Motor_Controls_Task(void *pvParameters)
 
 #ifndef OPEN_LOOP
       /* Compute the feedback */
-      v_r_fb = MC_Stream_Data.r_speed_fb * Ke;
-      v_l_fb = MC_Stream_Data.r_speed_fb * Ke;
+      v_r_fb = MC_Stream_Data.filt_speeds.r * Ke;
+      v_l_fb = MC_Stream_Data.filt_speeds.l * Ke;
 
       /* Run the PID controllers */
       if (!L_Motor.stopped && !R_Motor.stopped)
@@ -238,9 +247,9 @@ void Right(void)
 void Stop(void)
 {
    MC_Stream_Data.r_speed_sp = 0.0f;
-   R_PID.Reset();
-
    MC_Stream_Data.l_speed_sp = 0.0f;
+
+   R_PID.Reset();
    L_PID.Reset();
 
    L_Motor.Stop();

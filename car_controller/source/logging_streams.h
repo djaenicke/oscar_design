@@ -32,8 +32,6 @@ typedef struct
    float min_speed;
    float r_speed_sp;
    float l_speed_sp;
-   float r_speed_fb;
-   float l_speed_fb;
    float r_error;
    float l_error;
    float r_integral;
