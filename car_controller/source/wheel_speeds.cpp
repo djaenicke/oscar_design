@@ -54,10 +54,8 @@ void Init_Wheel_Speed_Sensors(void)
 
    /* Enable interrupts to capture the optical encoder pulses */
    p_int_cfg = kPORT_InterruptRisingEdge;
-   PORT_SetPinInterruptConfig(Pin_Cfgs[RR_SPEED_SENSOR].pbase, Pin_Cfgs[RR_SPEED_SENSOR].pin, p_int_cfg);
-   PORT_SetPinInterruptConfig(Pin_Cfgs[RL_SPEED_SENSOR].pbase, Pin_Cfgs[RL_SPEED_SENSOR].pin, p_int_cfg);
-   PORT_SetPinInterruptConfig(Pin_Cfgs[FR_SPEED_SENSOR].pbase, Pin_Cfgs[FR_SPEED_SENSOR].pin, p_int_cfg);
-   PORT_SetPinInterruptConfig(Pin_Cfgs[FL_SPEED_SENSOR].pbase, Pin_Cfgs[FL_SPEED_SENSOR].pin, p_int_cfg);
+   PORT_SetPinInterruptConfig(Pin_Cfgs[R_SPEED_SENSOR].pbase, Pin_Cfgs[R_SPEED_SENSOR].pin, p_int_cfg);
+   PORT_SetPinInterruptConfig(Pin_Cfgs[L_SPEED_SENSOR].pbase, Pin_Cfgs[L_SPEED_SENSOR].pin, p_int_cfg);
 
    NVIC_SetPriority(PORTB_IRQn, ENCODER_INT_PRIO);
    NVIC_SetPriority(PORTC_IRQn, ENCODER_INT_PRIO);
@@ -73,10 +71,8 @@ void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
 {
    if (NULL != speeds)
    {
-      speeds->rr = Period_2_Speed(RR);
-      speeds->rl = Period_2_Speed(RL);
-      speeds->fr = Period_2_Speed(FR);
-      speeds->fl = Period_2_Speed(FL);
+      speeds->r = Period_2_Speed(R);
+      speeds->l = Period_2_Speed(L);
    }
    else
    {
@@ -84,39 +80,13 @@ void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
    }
 }
 
-void Zero_Wheel_Speeds(void)
+void Zero_Wheel_Speed(Wheel_T pos)
 {
-   for (uint8_t i=0; i<(uint8_t)NUM_WHEELS; i++)
-   {
-      for (uint8_t j=0; j<(uint8_t)MAX_MEASUREMENTS; j++)
-      {
-         Encoder_Period[i].period_cnt[j] = (uint16_t) 0;
-      }
-      Encoder_Period[i].meas_type = START;
-   }
-}
-
-void Zero_Left_Wheel_Speeds(void)
-{
-   Encoder_Period[RL].meas_type = START;
-   Encoder_Period[FL].meas_type = START;
+   Encoder_Period[pos].meas_type = START;
 
    for (uint8_t i=0; i<(uint8_t)MAX_MEASUREMENTS; i++)
    {
-      Encoder_Period[RL].period_cnt[i] = (uint16_t) 0;
-      Encoder_Period[FL].period_cnt[i] = (uint16_t) 0;
-   }
-}
-
-void Zero_Right_Wheel_Speeds(void)
-{
-   Encoder_Period[RR].meas_type = START;
-   Encoder_Period[FR].meas_type = START;
-
-   for (uint8_t i=0; i<(uint8_t)MAX_MEASUREMENTS; i++)
-   {
-      Encoder_Period[RR].period_cnt[i] = (uint16_t) 0;
-      Encoder_Period[FR].period_cnt[i] = (uint16_t) 0;
+      Encoder_Period[pos].period_cnt[i] = (uint16_t) 0;
    }
 }
 
@@ -124,31 +94,19 @@ extern "C"
 {
 void PORTC_IRQHandler(void)
 {
-   /* Determine which wheel speed sensor(s) caused the interrupt */
-   if (ISR_Flag_Is_Set(RL_SPEED_SENSOR))
+   if (ISR_Flag_Is_Set(L_SPEED_SENSOR))
    {
-      Measure_Period(RL);
-      Clear_ISR_Flag(RL_SPEED_SENSOR);
-   }
-   if (ISR_Flag_Is_Set(FR_SPEED_SENSOR))
-   {
-      Measure_Period(FR);
-      Clear_ISR_Flag(FR_SPEED_SENSOR);
+      Measure_Period(L);
+      Clear_ISR_Flag(L_SPEED_SENSOR);
    }
 }
 
 void PORTB_IRQHandler(void)
 {
-   /* Determine which wheel speed sensor(s) caused the interrupt */
-   if (ISR_Flag_Is_Set(RR_SPEED_SENSOR))
+   if (ISR_Flag_Is_Set(R_SPEED_SENSOR))
    {
-      Measure_Period(RR);
-      Clear_ISR_Flag(RR_SPEED_SENSOR);
-   }
-   if (ISR_Flag_Is_Set(FL_SPEED_SENSOR))
-   {
-      Measure_Period(FL);
-      Clear_ISR_Flag(FL_SPEED_SENSOR);
+      Measure_Period(R);
+      Clear_ISR_Flag(R_SPEED_SENSOR);
    }
 }
 }

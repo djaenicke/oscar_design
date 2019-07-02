@@ -98,7 +98,7 @@ void Init_Motor_Controls(void)
 
 void Motor_Controls_Task(void *pvParameters)
 {
-   size_t bytes_sent;
+   size_t bytes_sent = 0;
    float v_r_sp, v_l_sp;   /* Set point */
 #ifndef OPEN_LOOP
    float v_r_fb, v_l_fb;   /* Feedback */
@@ -110,11 +110,15 @@ void Motor_Controls_Task(void *pvParameters)
 
       if (L_Motor.stopped && R_Motor.stopped)
       {
-         Zero_Wheel_Speeds();
+         Zero_Wheel_Speed(R);
+         Zero_Wheel_Speed(L);
       }
 
       Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
       Filter_Wheel_Speeds();
+
+      MC_Stream_Data.r_speed_fb = MC_Stream_Data.filt_speeds.r;
+      MC_Stream_Data.l_speed_fb = MC_Stream_Data.filt_speeds.l;
 
       /* Determine the maximum speed based on the current battery voltage */
       MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
@@ -132,10 +136,6 @@ void Motor_Controls_Task(void *pvParameters)
       /* Compute the set points */
       v_r_sp = MC_Stream_Data.r_speed_sp * Ke;
       v_l_sp = MC_Stream_Data.l_speed_sp * Ke;
-
-      /* Average the wheel speeds to treat the 4 motors as 2 */
-      MC_Stream_Data.r_speed_fb = (MC_Stream_Data.filt_speeds.rr + MC_Stream_Data.filt_speeds.fr)/2;
-      MC_Stream_Data.l_speed_fb = (MC_Stream_Data.filt_speeds.rl + MC_Stream_Data.filt_speeds.fl)/2;
 
 #ifndef OPEN_LOOP
       /* Compute the feedback */
@@ -163,13 +163,13 @@ void Motor_Controls_Task(void *pvParameters)
          if (r_dir != R_Motor.Get_Direction())
          {
             R_Motor.Set_Direction(r_dir);
-            Zero_Right_Wheel_Speeds();
+            Zero_Wheel_Speed(R);
          }
 
          if (l_dir != L_Motor.Get_Direction())
          {
             L_Motor.Set_Direction(l_dir);
-            Zero_Left_Wheel_Speeds();
+            Zero_Wheel_Speed(L);
          }
       }
 #endif
@@ -195,10 +195,8 @@ void Motor_Controls_Task(void *pvParameters)
 
 static inline void Filter_Wheel_Speeds(void)
 {
-   MC_Stream_Data.filt_speeds.rr = LP_Filter(MC_Stream_Data.raw_speeds.rr, MC_Stream_Data.filt_speeds.rr, FILT_ALPHA);
-   MC_Stream_Data.filt_speeds.rl = LP_Filter(MC_Stream_Data.raw_speeds.rl, MC_Stream_Data.filt_speeds.rl, FILT_ALPHA);
-   MC_Stream_Data.filt_speeds.fr = LP_Filter(MC_Stream_Data.raw_speeds.fr, MC_Stream_Data.filt_speeds.fr, FILT_ALPHA);
-   MC_Stream_Data.filt_speeds.fl = LP_Filter(MC_Stream_Data.raw_speeds.fl, MC_Stream_Data.filt_speeds.fl, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r, MC_Stream_Data.filt_speeds.r, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l, MC_Stream_Data.filt_speeds.l, FILT_ALPHA);
 }
 
 void Forward(void)

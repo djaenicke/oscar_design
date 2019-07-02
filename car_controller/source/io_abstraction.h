@@ -37,10 +37,8 @@ typedef enum
     UART4_RX,
     UART4_TX,
     VBATT,
-    RR_SPEED_SENSOR,
-    RL_SPEED_SENSOR,
-    FR_SPEED_SENSOR,
-    FL_SPEED_SENSOR,
+    R_SPEED_SENSOR,
+    L_SPEED_SENSOR,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

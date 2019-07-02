@@ -21,10 +21,8 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
     {PORTC, GPIOC, 14, kPORT_MuxAlt3,             kGPIO_DigitalInput,  NA},   /* UART4_RX */
     {PORTC, GPIOC, 15, kPORT_MuxAlt3,             kGPIO_DigitalOutput, NA},   /* UART4_TX */
     {PORTB, GPIOB,  2, kPORT_PinDisabledOrAnalog, kGPIO_DigitalOutput, NA},   /* VBATT */
-    {PORTB, GPIOB, 18, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* RR_SPEED_SENSOR */
-    {PORTC, GPIOC,  8, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* RL_SPEED_SENSOR */
-    {PORTC, GPIOC,  1, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* FR_SPEED_SENSOR */
-    {PORTB, GPIOB, 19, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* FL_SPEED_SENSOR */
+    {PORTB, GPIOB, 18, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
+    {PORTC, GPIOC,  8, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA}    /* L_SPEED_SENSOR */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
@@ -43,7 +41,7 @@ void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
 
 uint32_t Read_GPIO(IO_Map_T gpio)
 {
-    uint32_t ret_val;
+    uint32_t ret_val = 0;
 
     if (gpio < NUM_IO)
     {
