@@ -100,9 +100,11 @@ void Motor_Controls_Task(void *pvParameters)
 {
    size_t bytes_sent = 0;
    float v_r_sp, v_l_sp;   /* Set point */
+   Direction_T r_dir, l_dir;
 #ifndef OPEN_LOOP
    float v_r_fb, v_l_fb;   /* Feedback */
-   Direction_T r_dir, l_dir;
+#else
+   int8_t sign;
 #endif
    while(1)
    {
@@ -142,8 +144,14 @@ void Motor_Controls_Task(void *pvParameters)
          MC_Stream_Data.r_integral = R_PID.integral;
          MC_Stream_Data.l_integral = L_PID.integral;
 #else
-         MC_Stream_Data.u_r = v_r_sp > Min_Voltage ? v_r_sp : Min_Voltage;
-         MC_Stream_Data.u_l = v_l_sp > Min_Voltage ? v_l_sp : Min_Voltage;
+         /* Saturate the set points to be within the actuator voltage range */
+         sign = signbit(MC_Stream_Data.u_r) ? -1 : 1;
+         MC_Stream_Data.u_r = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
+         MC_Stream_Data.u_r = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
+
+         sign = signbit(MC_Stream_Data.u_l) ? -1 : 1;
+         MC_Stream_Data.u_l = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign *Min_Voltage;
+         MC_Stream_Data.u_l = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
 #endif
          /* Convert the actuation voltages to duty cycles */
          MC_Stream_Data.u_r_dc = (uint8_t)(fabs(MC_Stream_Data.u_r) * (100/MC_Stream_Data.max_vbatt));
