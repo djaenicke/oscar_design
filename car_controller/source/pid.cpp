@@ -5,6 +5,7 @@
  *      Author: djaenicke
  */
 
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include "pid.h"
@@ -28,8 +29,10 @@ void PID::Init(PID_Cals_T * cals)
 
 float PID::Step(float sp, float fb, float max, float min)
 {
-   float u, d; /* actuator command, derivative */
-   float e = sp - fb; /* error = set point - feed back */
+   float u, d;          /* actuator command, derivative  */
+   float ti = integral; /* temporary integral            */
+   float e = sp - fb;   /* error = set point - feed back */
+   int8_t sign;
 
    /* Ignore the error if it's smaller than the tolerance */
    if (fabs(e) < tol)
@@ -38,42 +41,29 @@ float PID::Step(float sp, float fb, float max, float min)
    }
 
    d = (e - last_e)/dt;
-   integral += ((e + last_e)/2)*dt; /* Trapezoidal integration */
+   ti += (((e + last_e)/2)*dt); /* Trapezoidal integration */
 
    u = (kp * e) + (ki * integral) + (kd * d);
 
    last_e = e;
 
-   /* Perform saturation to prevent integral wind up */
-   if (fabs(u) > max)
+   /* Determine the sign of u */
+   sign = signbit(u) ? -1 : 1;
+
+   /* Limit the integral term */
+   if (fabs(u) < max)
    {
-      if (signbit(u))
-      {
-         /* Less than max negative */
-         integral += abs(u) - max;
-         u = -max;
-      }
-      else
-      {
-         /* Greater than max positive */
-         integral -= u - max;
-         u = max;
-      }
+      integral = ti;
    }
-   else if (fabs(u) < min)
+
+   /* Perform saturation on the activation signal */
+   if (fabs(u) < min)
    {
-      if (signbit(u))
-      {
-         /* Less than min and negative */
-         integral += abs(u) - min;
-         u = -min;
-      }
-      else
-      {
-         /* Less than min but not negative */
-         integral += min - u;
-         u = min;
-      }
+      u = sign * min;
+   }
+   else if (fabs(u) > max)
+   {
+      u = sign * max;
    }
 
    return (u);
@@ -84,3 +74,4 @@ void PID::Reset(void)
    last_e = 0.0f;
    integral = 0.0f;
 }
+

@@ -10,10 +10,7 @@
 
 extern void Init_Motor_Controls(void);
 extern void Motor_Controls_Task(void *pvParameters);
-extern void Forward(void);
-extern void Backward(void);
-extern void Left(void);
-extern void Right(void);
+extern void Update_Wheel_Speed_Setpoints(float r_sp, float l_sp);
 extern void Stop(void);
 
 #endif /* MOTOR_CONTROLS_H_ */

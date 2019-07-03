@@ -55,11 +55,11 @@ void Bluetooth_Cmd_Task(void *pvParameters)
       {
          switch (Cmd)
          {
-           case 'f': Forward();  break;
-           case 'b': Backward(); break;
-           case 'l': Left();     break;
-           case 'r': Right();    break;
-           case 's': Stop();     break;
+           case 'f': Update_Wheel_Speed_Setpoints( 20.0f,  20.0f); break;
+           case 'b': Update_Wheel_Speed_Setpoints(-20.0f, -20.0f); break;
+           case 'l': Update_Wheel_Speed_Setpoints(-17.0f,  17.0f); break;
+           case 'r': Update_Wheel_Speed_Setpoints( 17.0f, -17.0f); break;
+           case 's': Stop(); break;
            case 'a': break;
            case 'o': Open_Log_File();  break;
            case 'c': Close_Log_File(); break;
