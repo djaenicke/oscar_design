@@ -38,10 +38,14 @@ typedef struct {
 
 static volatile Software_PWM_T PWM;
 
-void Servo::Init(float offset)
+void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
 {
    /* Configure the PWM output */
    ftm_config_t ftmInfo;
+
+   assert(ftm_base_ptr);
+
+   ftm_ptr = ftm_base_ptr;
 
    position_offset = offset;
    min_angle += position_offset;
@@ -58,17 +62,33 @@ void Servo::Init(float offset)
    /* Divide FTM clock by 32 */
    ftmInfo.prescale = kFTM_Prescale_Divide_32;
 
-   FTM_Init(FTM3, &ftmInfo);
+   FTM_Init(ftm_base_ptr, &ftmInfo);
 
-   FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
+   FTM_SetTimerPeriod(ftm_ptr, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
 
-   FTM_EnableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
+   FTM_EnableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
-   EnableIRQ(FTM3_IRQn);
+   switch((uint32_t)ftm_ptr)
+   {
+      case FTM0_BASE:
+         EnableIRQ(FTM0_IRQn);
+         break;
+      case FTM1_BASE:
+         EnableIRQ(FTM1_IRQn);
+         break;
+      case FTM2_BASE:
+         EnableIRQ(FTM2_IRQn);
+         break;
+      case FTM3_BASE:
+         EnableIRQ(FTM3_IRQn);
+         break;
+      default:
+         assert(false);
+   }
 
    Set_GPIO(SERVO, HIGH);
 
-   FTM_StartTimer(FTM3, kFTM_SystemClock);
+   FTM_StartTimer(ftm_ptr, kFTM_SystemClock);
 
    init_complete = true;
 }
@@ -99,12 +119,12 @@ void Servo::Set_Angle(float angle)
    /* Saturate the angle to be within [min_angle, max_angle] */
    cur_angle = angle > max_angle ? max_angle : angle < min_angle ? min_angle : angle;
 
-   FTM_DisableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
+   FTM_DisableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
    PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
    PWM.off_time = (PWM.period - PWM.on_time);
 
-   FTM_EnableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
+   FTM_EnableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 }
 
 void Servo::Set_Max_Angle(float angle)
@@ -143,3 +163,4 @@ void FTM3_IRQHandler(void)
     __DSB();
 }
 }
+

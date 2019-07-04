@@ -18,12 +18,13 @@ class Servo
 {
 private:
    bool  init_complete = false;
+   FTM_Type * ftm_ptr;
    float position_offset = 0;
    float cur_angle = DEF_ANGLE_DEG;
    float min_angle = MIN_ANGLE_DEG;
    float max_angle = MAX_ANGLE_DEG;
 public:
-   void  Init(float offset);
+   void  Init(float offset, FTM_Type *ftm_base_ptr);
 
    float Get_Angle(void);
    float Get_Max_Angle(void);

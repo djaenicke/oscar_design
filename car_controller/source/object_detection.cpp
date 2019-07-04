@@ -20,7 +20,7 @@ void Init_Object_Detection(void)
 {
    float temp_angle;
 
-   Sensor_Servo.Init(SENSOR_FORWARD_OFFSET);
+   Sensor_Servo.Init(SENSOR_FORWARD_OFFSET, FTM3);
 
    /* Reduce the FOV to protect the servo motor */
    temp_angle = Sensor_Servo.Get_Max_Angle();
