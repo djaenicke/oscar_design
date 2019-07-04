@@ -12,6 +12,7 @@
 #define UART4_INT_PRIO   3U
 #define ENCODER_INT_PRIO 2U
 #define SDHC_INT_PRIO    5U
+#define USS_ECHO_PRIO    3U
 
 
 #endif /* INTERRUPT_PRIOS_H_ */

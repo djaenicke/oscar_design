@@ -10,6 +10,8 @@
 
 #include "object_detection.h"
 
+#define FORWARD_ONLY
+
 #define SENSOR_FORWARD_OFFSET (0)  /* Degrees */
 #define ROTATION_STEP         (20) /* Degrees */
 
@@ -31,9 +33,11 @@ void Init_Object_Detection(void)
    temp_angle += ROTATION_STEP;
    Sensor_Servo.Set_Min_Angle(temp_angle);
 
+#ifndef FORWARD_ONLY
    /* Initialize the position to max CCW */
    temp_angle = Sensor_Servo.Get_Max_Angle();
    Sensor_Servo.Set_Angle(temp_angle);
+#endif
 
    USS_Sensor.Init(FTM2, USS_TRIGGER, USS_ECHO);
 }
@@ -41,11 +45,15 @@ void Init_Object_Detection(void)
 void Object_Detection_Task(void *pvParameters)
 {
    float cur_angle;
+   float obj_dist;
 
    while(1)
    {
+      /* See if previous loop detected an object */
+      obj_dist = USS_Sensor.Get_Obj_Dist();
       cur_angle = Sensor_Servo.Get_Angle();
 
+#ifndef FORWARD_ONLY
       if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
       {
          Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
@@ -55,7 +63,7 @@ void Object_Detection_Task(void *pvParameters)
          cur_angle = Sensor_Servo.Get_Max_Angle();
          Sensor_Servo.Set_Angle(cur_angle);
       }
-
+#endif
       /* Scan for object here */
       USS_Sensor.Trigger();
 
