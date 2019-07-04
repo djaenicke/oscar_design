@@ -65,10 +65,12 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define SD_CARD_INIT_TASK_PRIO    (configMAX_PRIORITIES - 1U)
-#define MOTOR_CONTROLS_TASK_PRIO  (configMAX_PRIORITIES - 2U)
-#define MC_DATA_LOGGING_TASK_PRIO (configMAX_PRIORITIES - 3U)
-#define BLUETOOTH_CMD_TASK_PRIO   (configMAX_PRIORITIES - 4U)
+#define SD_CARD_INIT_TASK_PRIO     (configMAX_PRIORITIES - 1U)
+#define MOTOR_CONTROLS_TASK_PRIO   (configMAX_PRIORITIES - 2U)
+#define OBJECT_DETECTION_TASK_PRIO (configMAX_PRIORITIES - 3U)
+#define MC_DATA_LOGGING_TASK_PRIO  (configMAX_PRIORITIES - 4U)
+#define BLUETOOTH_CMD_TASK_PRIO    (configMAX_PRIORITIES - 5U)
+
 
 typedef struct Task_Cfg_Tag
 {
@@ -105,10 +107,11 @@ int main(void)
    Set_GPIO(BLUE_LED, LOW);
 
    /* Create OS Tasks */
-   xTaskCreate(Motor_Controls_Task, "Motor_Controls",    1024, NULL, MOTOR_CONTROLS_TASK_PRIO,  NULL);
-   xTaskCreate(Bluetooth_Cmd_Task,  "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,   NULL);
-   xTaskCreate(SD_Card_Init_Task,   "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,    NULL);
-   xTaskCreate(Log_MC_Stream_Task,  "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO, NULL);
+   xTaskCreate(Motor_Controls_Task,  "Motor_Controls",    1024, NULL, MOTOR_CONTROLS_TASK_PRIO,   NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
+   xTaskCreate(SD_Card_Init_Task,    "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,     NULL);
+   xTaskCreate(Log_MC_Stream_Task,   "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO,  NULL);
+   xTaskCreate(Object_Detection_Task,"Obj_Det_Task",      1024, NULL, OBJECT_DETECTION_TASK_PRIO, NULL);
 
    vTaskStartScheduler();
 }

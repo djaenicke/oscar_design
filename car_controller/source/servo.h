@@ -18,6 +18,7 @@ private:
 public:
    float min_angle;
    float max_angle;
+   float cur_angle;
 
    void Init(float offset);
    void Set_Postion(float angle);

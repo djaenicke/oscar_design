@@ -50,7 +50,7 @@ void Servo::Init(float offset)
    ftm_config_t ftmInfo;
 
    /* Apply the user's offset to the initial angle */
-   float init_angle = DEF_ANGLE_DEG + offset;
+   cur_angle = DEF_ANGLE_DEG + offset;
 
    position_offset = offset;
    min_angle = MIN_ANGLE_DEG - position_offset;
@@ -58,7 +58,7 @@ void Servo::Init(float offset)
 
    /* Initialize the software based PWM parameters */
    PWM.period   = SERVO_PERIOD;
-   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(init_angle);
+   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle);
    PWM.off_time = (PWM.period - PWM.on_time);
    PWM.dc_state = DC_ON;
 
@@ -93,11 +93,11 @@ void Servo::Set_Postion(float angle)
    }
 
    /* Saturate the angle to be within [MIN_ANGLE_DEG, MAX_ANGLE_DEG] */
-   angle = angle > MAX_ANGLE_DEG ? MAX_ANGLE_DEG : angle < MIN_ANGLE_DEG ? MIN_ANGLE_DEG : angle;
+   cur_angle = angle > MAX_ANGLE_DEG ? MAX_ANGLE_DEG : angle < MIN_ANGLE_DEG ? MIN_ANGLE_DEG : angle;
 
    FTM_DisableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
 
-   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(angle);
+   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle);
    PWM.off_time = (PWM.period - PWM.on_time);
 
    FTM_EnableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
