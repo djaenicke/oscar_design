@@ -14,17 +14,10 @@
 #include "assert.h"
 #include "fsl_common.h"
 
-typedef enum {
-   DC_OFF,
-   DC_ON
-} PWM_DC_State_T;
-
-typedef struct {
-   PWM_DC_State_T dc_state;
-   uint16_t on_time;
-   uint16_t off_time;
-   uint16_t period;
-} Software_PWM_T;
+extern "C"
+{
+#include "ftm_isr_router.h"
+}
 
 #define FTM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_BusClk)/32)
 #define SERVO_PWM_FREQ (50.0f) /* Hz */
@@ -36,26 +29,31 @@ typedef struct {
 
 #define ANGLE_2_PULSE_WIDTH_TIME(angle) roundf((((angle)*MAX_PULSE_WIDTH/MAX_ANGLE_DEG)+MIN_PULSE_TIME))
 
-static volatile Software_PWM_T PWM;
+static volatile Software_PWM_T *PWM[NUM_FTMS];
+
+extern "C"
+{
+static void Servo_FTM_IRQHandler(uint8_t ftm_num);
+}
 
 void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
 {
    /* Configure the PWM output */
    ftm_config_t ftmInfo;
+   uint8_t ftm_num = 0;
 
    assert(ftm_base_ptr);
-
-   ftm_ptr = ftm_base_ptr;
 
    position_offset = offset;
    min_angle += position_offset;
    max_angle -= position_offset;
 
    /* Initialize the software based PWM parameters */
-   PWM.period   = SERVO_PERIOD;
-   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
-   PWM.off_time = (PWM.period - PWM.on_time);
-   PWM.dc_state = DC_ON;
+   pwm.ftm_ptr  = ftm_base_ptr;
+   pwm.period   = SERVO_PERIOD;
+   pwm.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
+   pwm.off_time = (pwm.period - pwm.on_time);
+   pwm.dc_state = DC_ON;
 
    FTM_GetDefaultConfig(&ftmInfo);
 
@@ -64,31 +62,39 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
 
    FTM_Init(ftm_base_ptr, &ftmInfo);
 
-   FTM_SetTimerPeriod(ftm_ptr, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
+   FTM_SetTimerPeriod(pwm.ftm_ptr, USEC_TO_COUNT(pwm.on_time, FTM_SOURCE_CLOCK));
 
-   FTM_EnableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
+   FTM_EnableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
-   switch((uint32_t)ftm_ptr)
+   switch((uint32_t)pwm.ftm_ptr)
    {
       case FTM0_BASE:
          EnableIRQ(FTM0_IRQn);
+         ftm_num = 0;
          break;
       case FTM1_BASE:
          EnableIRQ(FTM1_IRQn);
+         ftm_num = 1;
          break;
       case FTM2_BASE:
          EnableIRQ(FTM2_IRQn);
+         ftm_num = 2;
          break;
       case FTM3_BASE:
          EnableIRQ(FTM3_IRQn);
+         ftm_num = 3;
          break;
       default:
+         /* Invalid ftm_ptr */
          assert(false);
    }
 
+   Reroute_FTM_ISR(ftm_num, &Servo_FTM_IRQHandler);
+   PWM[ftm_num] = &pwm;
+
    Set_GPIO(SERVO, HIGH);
 
-   FTM_StartTimer(ftm_ptr, kFTM_SystemClock);
+   FTM_StartTimer(pwm.ftm_ptr, kFTM_SystemClock);
 
    init_complete = true;
 }
@@ -119,12 +125,12 @@ void Servo::Set_Angle(float angle)
    /* Saturate the angle to be within [min_angle, max_angle] */
    cur_angle = angle > max_angle ? max_angle : angle < min_angle ? min_angle : angle;
 
-   FTM_DisableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
+   FTM_DisableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
-   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
-   PWM.off_time = (PWM.period - PWM.on_time);
+   pwm.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
+   pwm.off_time = (pwm.period - pwm.on_time);
 
-   FTM_EnableInterrupts(ftm_ptr, kFTM_TimeOverflowInterruptEnable);
+   FTM_EnableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 }
 
 void Servo::Set_Max_Angle(float angle)
@@ -139,27 +145,27 @@ void Servo::Set_Min_Angle(float angle)
 
 extern "C"
 {
-void FTM3_IRQHandler(void)
+void Servo_FTM_IRQHandler(uint8_t ftm_num)
 {
-   FTM_StopTimer(FTM3);
+   FTM_StopTimer(PWM[ftm_num]->ftm_ptr);
 
-   if (DC_ON == PWM.dc_state)
+   if (DC_ON == PWM[ftm_num]->dc_state)
    {
       Set_GPIO(SERVO, LOW);
-      FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.off_time, FTM_SOURCE_CLOCK));
-      PWM.dc_state = DC_OFF;
+      FTM_SetTimerPeriod(PWM[ftm_num]->ftm_ptr, USEC_TO_COUNT(PWM[ftm_num]->off_time, FTM_SOURCE_CLOCK));
+      PWM[ftm_num]->dc_state = DC_OFF;
    }
    else
    {
       Set_GPIO(SERVO, HIGH);
-      FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
-      PWM.dc_state = DC_ON;
+      FTM_SetTimerPeriod(PWM[ftm_num]->ftm_ptr, USEC_TO_COUNT(PWM[ftm_num]->on_time, FTM_SOURCE_CLOCK));
+      PWM[ftm_num]->dc_state = DC_ON;
    }
 
-   FTM_StartTimer(FTM3, kFTM_SystemClock);
+   FTM_StartTimer(PWM[ftm_num]->ftm_ptr, kFTM_SystemClock);
 
    /* Clear interrupt flag.*/
-    FTM_ClearStatusFlags(FTM3, kFTM_TimeOverflowFlag);
+    FTM_ClearStatusFlags(PWM[ftm_num]->ftm_ptr, kFTM_TimeOverflowFlag);
     __DSB();
 }
 }

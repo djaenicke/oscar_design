@@ -14,11 +14,24 @@
 #define DEF_ANGLE_DEG (90.0f)
 #define MAX_ANGLE_DEG (180.0f)
 
+typedef enum {
+   DC_OFF,
+   DC_ON
+} PWM_DC_State_T;
+
+typedef struct {
+   FTM_Type * ftm_ptr;
+   PWM_DC_State_T dc_state;
+   uint16_t on_time;
+   uint16_t off_time;
+   uint16_t period;
+} Software_PWM_T;
+
 class Servo
 {
 private:
+   Software_PWM_T pwm;
    bool  init_complete = false;
-   FTM_Type * ftm_ptr;
    float position_offset = 0;
    float cur_angle = DEF_ANGLE_DEG;
    float min_angle = MIN_ANGLE_DEG;
