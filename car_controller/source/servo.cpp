@@ -34,31 +34,22 @@ typedef struct {
 #define MIN_PULSE_TIME    (400.0f) /* us */
 #define MAX_PULSE_WIDTH  (2000.0f) /* us */
 
-#define MIN_ANGLE_DEG (0.0f)
-#define DEF_ANGLE_DEG (90.0f)
-#define MAX_ANGLE_DEG (180.0f)
-
-
-#define ANGLE_2_PULSE_WIDTH_TIME(angle) roundf(((angle*MAX_PULSE_WIDTH/MAX_ANGLE_DEG)+MIN_PULSE_TIME))
+#define ANGLE_2_PULSE_WIDTH_TIME(angle) roundf((((angle)*MAX_PULSE_WIDTH/MAX_ANGLE_DEG)+MIN_PULSE_TIME))
 
 static volatile Software_PWM_T PWM;
-static volatile float test;
 
 void Servo::Init(float offset)
 {
    /* Configure the PWM output */
    ftm_config_t ftmInfo;
 
-   /* Apply the user's offset to the initial angle */
-   cur_angle = DEF_ANGLE_DEG + offset;
-
    position_offset = offset;
-   min_angle = MIN_ANGLE_DEG - position_offset;
-   max_angle = MAX_ANGLE_DEG - position_offset;
+   min_angle += position_offset;
+   max_angle -= position_offset;
 
    /* Initialize the software based PWM parameters */
    PWM.period   = SERVO_PERIOD;
-   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle);
+   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
    PWM.off_time = (PWM.period - PWM.on_time);
    PWM.dc_state = DC_ON;
 
@@ -82,47 +73,70 @@ void Servo::Init(float offset)
    init_complete = true;
 }
 
-void Servo::Set_Postion(float angle)
+float Servo::Get_Angle(void)
 {
-   angle += position_offset;
+   return(cur_angle);
+}
 
+float Servo::Get_Max_Angle(void)
+{
+   return(max_angle);
+}
+
+float Servo::Get_Min_Angle(void)
+{
+   return(min_angle);
+}
+
+void Servo::Set_Angle(float angle)
+{
    if (!init_complete)
    {
       /* Init method must be called first */
       assert(false);
    }
 
-   /* Saturate the angle to be within [MIN_ANGLE_DEG, MAX_ANGLE_DEG] */
-   cur_angle = angle > MAX_ANGLE_DEG ? MAX_ANGLE_DEG : angle < MIN_ANGLE_DEG ? MIN_ANGLE_DEG : angle;
+   /* Saturate the angle to be within [min_angle, max_angle] */
+   cur_angle = angle > max_angle ? max_angle : angle < min_angle ? min_angle : angle;
 
    FTM_DisableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
 
-   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle);
+   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
    PWM.off_time = (PWM.period - PWM.on_time);
 
    FTM_EnableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
+}
+
+void Servo::Set_Max_Angle(float angle)
+{
+   max_angle = angle < max_angle ? angle : max_angle;
+}
+
+void Servo::Set_Min_Angle(float angle)
+{
+   min_angle = angle > min_angle ? angle : min_angle;
 }
 
 extern "C"
 {
 void FTM3_IRQHandler(void)
 {
+   FTM_StopTimer(FTM3);
+
    if (DC_ON == PWM.dc_state)
    {
-      FTM_StopTimer(FTM3);
+      Set_GPIO(SERVO, LOW);
       FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.off_time, FTM_SOURCE_CLOCK));
       PWM.dc_state = DC_OFF;
-      Set_GPIO(SERVO, LOW);
-      FTM_StartTimer(FTM3, kFTM_SystemClock);
    }
    else
    {
-      FTM_StopTimer(FTM3);
+      Set_GPIO(SERVO, HIGH);
       FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
       PWM.dc_state = DC_ON;
-      Set_GPIO(SERVO, HIGH);
-      FTM_StartTimer(FTM3, kFTM_SystemClock);
    }
+
+   FTM_StartTimer(FTM3, kFTM_SystemClock);
 
    /* Clear interrupt flag.*/
     FTM_ClearStatusFlags(FTM3, kFTM_TimeOverflowFlag);

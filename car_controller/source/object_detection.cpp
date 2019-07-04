@@ -17,31 +17,46 @@ static Servo Sensor_Servo;
 
 void Init_Object_Detection(void)
 {
+   float temp_angle;
+
    Sensor_Servo.Init(SENSOR_FORWARD_OFFSET);
 
    /* Reduce the FOV to protect the servo motor */
-   Sensor_Servo.max_angle -= ROTATION_STEP;
-   Sensor_Servo.min_angle += ROTATION_STEP;
+   temp_angle = Sensor_Servo.Get_Max_Angle();
+   temp_angle -= ROTATION_STEP;
+   Sensor_Servo.Set_Max_Angle(temp_angle);
 
-   Sensor_Servo.Set_Postion(Sensor_Servo.max_angle);
+   temp_angle = Sensor_Servo.Get_Min_Angle();
+   temp_angle += ROTATION_STEP;
+   Sensor_Servo.Set_Min_Angle(temp_angle);
+
+   /* Initialize the position to max CCW */
+   temp_angle = Sensor_Servo.Get_Max_Angle();
+   Sensor_Servo.Set_Angle(temp_angle);
 }
 
 void Object_Detection_Task(void *pvParameters)
 {
+   float cur_angle;
+
    while(1)
    {
-      if ((Sensor_Servo.cur_angle - ROTATION_STEP) >= Sensor_Servo.min_angle)
+      cur_angle = Sensor_Servo.Get_Angle();
+
+      if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
       {
-         Sensor_Servo.Set_Postion(Sensor_Servo.cur_angle - ROTATION_STEP);
+         Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
       }
       else
       {
-         Sensor_Servo.Set_Postion(Sensor_Servo.max_angle);
+         cur_angle = Sensor_Servo.Get_Max_Angle();
+         Sensor_Servo.Set_Angle(cur_angle);
       }
 
       /* Scan for object here */
 
       /* Delay should be at least 2 * (range / speed of sound) */
+
       vTaskDelay(pdMS_TO_TICKS(200));
    }
 }
