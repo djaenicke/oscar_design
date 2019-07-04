@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "ftm_isr_router.h"
+#include "assert.h"
 
 static Fnc_Ptr_T FTM_ISR_Table[NUM_FTMS];
 
@@ -31,7 +32,7 @@ void Reroute_FTM_ISR(uint8_t ftm_num, Fnc_Ptr_T func_ptr)
    }
 }
 
-/*
+
 void FTM0_IRQHandler(void)
 {
    if (NULL != FTM_ISR_Table[0])
@@ -67,7 +68,6 @@ void FTM2_IRQHandler(void)
       assert(0);
    }
 }
-*/
 
 void FTM3_IRQHandler(void)
 {

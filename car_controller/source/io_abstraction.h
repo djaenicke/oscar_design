@@ -1,5 +1,5 @@
 #ifndef _IO_ABSTRACTION_H_
-#define _IO_ABSTRSCTION_H_
+#define _IO_ABSTRACTION_H_
 
 #include <stdint.h>
 

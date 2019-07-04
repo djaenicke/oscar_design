@@ -35,7 +35,7 @@ void Init_Object_Detection(void)
    temp_angle = Sensor_Servo.Get_Max_Angle();
    Sensor_Servo.Set_Angle(temp_angle);
 
-   USS_Sensor.Init();
+   USS_Sensor.Init(FTM2, USS_TRIGGER, USS_ECHO);
 }
 
 void Object_Detection_Task(void *pvParameters)

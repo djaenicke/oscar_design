@@ -55,17 +55,6 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
    pwm.off_time = (pwm.period - pwm.on_time);
    pwm.dc_state = DC_ON;
 
-   FTM_GetDefaultConfig(&ftmInfo);
-
-   /* Divide FTM clock by 32 */
-   ftmInfo.prescale = kFTM_Prescale_Divide_32;
-
-   FTM_Init(ftm_base_ptr, &ftmInfo);
-
-   FTM_SetTimerPeriod(pwm.ftm_ptr, USEC_TO_COUNT(pwm.on_time, FTM_SOURCE_CLOCK));
-
-   FTM_EnableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
-
    switch((uint32_t)pwm.ftm_ptr)
    {
       case FTM0_BASE:
@@ -88,6 +77,17 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
          /* Invalid ftm_ptr */
          assert(false);
    }
+
+   FTM_GetDefaultConfig(&ftmInfo);
+
+   /* Divide FTM clock by 32 */
+   ftmInfo.prescale = kFTM_Prescale_Divide_32;
+
+   FTM_Init(ftm_base_ptr, &ftmInfo);
+
+   FTM_SetTimerPeriod(pwm.ftm_ptr, USEC_TO_COUNT(pwm.on_time, FTM_SOURCE_CLOCK));
+
+   FTM_EnableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
    Reroute_FTM_ISR(ftm_num, &Servo_FTM_IRQHandler);
    PWM[ftm_num] = &pwm;
