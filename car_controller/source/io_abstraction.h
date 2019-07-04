@@ -39,6 +39,8 @@ typedef enum
     VBATT,
     R_SPEED_SENSOR,
     L_SPEED_SENSOR,
+    USS_TRIGGER,
+    USS_ECHO,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

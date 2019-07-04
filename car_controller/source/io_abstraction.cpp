@@ -22,7 +22,9 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
     {PORTC, GPIOC, 15, kPORT_MuxAlt3,             kGPIO_DigitalOutput, NA},   /* UART4_TX */
     {PORTB, GPIOB,  2, kPORT_PinDisabledOrAnalog, kGPIO_DigitalOutput, NA},   /* VBATT */
     {PORTB, GPIOB, 18, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
-    {PORTC, GPIOC,  8, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA}    /* L_SPEED_SENSOR */
+    {PORTC, GPIOC,  8, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR */
+    {PORTC, GPIOC, 10, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* Trigger Pin for USS */
+    {PORTA, GPIOA, 18, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* Echo Pin for USS */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)

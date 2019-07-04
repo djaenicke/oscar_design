@@ -8,12 +8,13 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "servo.h"
+#include "object_detection.h"
 
 #define SENSOR_FORWARD_OFFSET (0)  /* Degrees */
 #define ROTATION_STEP         (20) /* Degrees */
 
 static Servo Sensor_Servo;
+static UltrasonicSensor USS_Sensor;
 
 void Init_Object_Detection(void)
 {
@@ -33,6 +34,8 @@ void Init_Object_Detection(void)
    /* Initialize the position to max CCW */
    temp_angle = Sensor_Servo.Get_Max_Angle();
    Sensor_Servo.Set_Angle(temp_angle);
+
+   USS_Sensor.Init();
 }
 
 void Object_Detection_Task(void *pvParameters)
@@ -54,9 +57,9 @@ void Object_Detection_Task(void *pvParameters)
       }
 
       /* Scan for object here */
+      USS_Sensor.Trigger();
 
       /* Delay should be at least 2 * (range / speed of sound) */
-
       vTaskDelay(pdMS_TO_TICKS(200));
    }
 }
