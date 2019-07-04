@@ -60,6 +60,7 @@
 #include "battery_monitor.h"
 #include "interrupt_prios.h"
 #include "logging_streams.h"
+#include "object_detection.h"
 
 /*******************************************************************************
  * Definitions
@@ -117,6 +118,7 @@ void Init_App(void)
    Init_Battery_Monitor();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
+   Init_Object_Detection();
    Bluetooth_Serial_Open();
    Create_Streams();
 

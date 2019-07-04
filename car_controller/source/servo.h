@@ -14,9 +14,13 @@ class Servo
 {
 private:
    bool init_complete;
+   float position_offset = 0;
 public:
-   void Init(void);
-   void Set_Postion(uint8_t angle);
+   float min_angle;
+   float max_angle;
+
+   void Init(float offset);
+   void Set_Postion(float angle);
 };
 
 #endif /* SERVO_H_ */

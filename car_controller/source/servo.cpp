@@ -5,6 +5,8 @@
  *      Author: Devin
  */
 
+#include <math.h>
+
 #include "servo.h"
 #include "io_abstraction.h"
 #include "fsl_ftm.h"
@@ -29,26 +31,34 @@ typedef struct {
 #define SEC_2_US (1000000)
 #define SERVO_PERIOD (uint16_t)((1/SERVO_PWM_FREQ)*SEC_2_US)
 
-#define MIN_PULSE_TIME   (uint16_t)(1000) /* us */
-#define MAX_PULSE_WIDTH  (uint16_t)(1000) /* us */
+#define MIN_PULSE_TIME    (400.0f) /* us */
+#define MAX_PULSE_WIDTH  (2000.0f) /* us */
 
-#define MIN_ANGLE_DEG (0)
-#define DEF_ANGLE_DEG (90)
-#define MAX_ANGLE_DEG (180)
+#define MIN_ANGLE_DEG (0.0f)
+#define DEF_ANGLE_DEG (90.0f)
+#define MAX_ANGLE_DEG (180.0f)
 
-#define ANGLE_2_PULSE_TIME(angle) (uint16_t)((angle*(MAX_PULSE_WIDTH/MAX_ANGLE_DEG))+MIN_PULSE_TIME)
+
+#define ANGLE_2_PULSE_WIDTH_TIME(angle) roundf(((angle*MAX_PULSE_WIDTH/MAX_ANGLE_DEG)+MIN_PULSE_TIME))
 
 static volatile Software_PWM_T PWM;
-static volatile uint16_t test;
+static volatile float test;
 
-void Servo::Init(void)
+void Servo::Init(float offset)
 {
    /* Configure the PWM output */
    ftm_config_t ftmInfo;
 
+   /* Apply the user's offset to the initial angle */
+   float init_angle = DEF_ANGLE_DEG + offset;
+
+   position_offset = offset;
+   min_angle = MIN_ANGLE_DEG - position_offset;
+   max_angle = MAX_ANGLE_DEG - position_offset;
+
    /* Initialize the software based PWM parameters */
    PWM.period   = SERVO_PERIOD;
-   PWM.on_time  = ANGLE_2_PULSE_TIME(DEF_ANGLE_DEG);
+   PWM.on_time  = ANGLE_2_PULSE_WIDTH_TIME(init_angle);
    PWM.off_time = (PWM.period - PWM.on_time);
    PWM.dc_state = DC_ON;
 
@@ -72,31 +82,24 @@ void Servo::Init(void)
    init_complete = true;
 }
 
-void Servo::Set_Postion(uint8_t angle)
+void Servo::Set_Postion(float angle)
 {
+   angle += position_offset;
+
    if (!init_complete)
    {
       /* Init method must be called first */
       assert(false);
    }
 
-   if (angle > (uint8_t) MAX_ANGLE_DEG)
-   {
-      /* Servo can only rotate 180 degrees */
-      assert(false);
-   }
+   /* Saturate the angle to be within [MIN_ANGLE_DEG, MAX_ANGLE_DEG] */
+   angle = angle > MAX_ANGLE_DEG ? MAX_ANGLE_DEG : angle < MIN_ANGLE_DEG ? MIN_ANGLE_DEG : angle;
 
    FTM_DisableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
-   FTM_StopTimer(FTM3);
 
-   PWM.on_time = ANGLE_2_PULSE_TIME(angle);
+   PWM.on_time = ANGLE_2_PULSE_WIDTH_TIME(angle);
    PWM.off_time = (PWM.period - PWM.on_time);
 
-   FTM_SetTimerPeriod(FTM3, USEC_TO_COUNT(PWM.on_time, FTM_SOURCE_CLOCK));
-   PWM.dc_state = DC_ON;
-   Set_GPIO(SERVO, HIGH);
-
-   FTM_StartTimer(FTM3, kFTM_SystemClock);
    FTM_EnableInterrupts(FTM3, kFTM_TimeOverflowInterruptEnable);
 }
 
