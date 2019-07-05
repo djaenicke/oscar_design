@@ -9,6 +9,7 @@
 #define SERVO_H_
 
 #include "fsl_ftm.h"
+#include "io_abstraction.h"
 
 #define MIN_ANGLE_DEG (0.0f)
 #define DEF_ANGLE_DEG (90.0f)
@@ -25,6 +26,7 @@ typedef struct {
    uint16_t on_time;
    uint16_t off_time;
    uint16_t period;
+   IO_Map_T pin;
 } Software_PWM_T;
 
 class Servo
@@ -37,7 +39,7 @@ private:
    float min_angle = MIN_ANGLE_DEG;
    float max_angle = MAX_ANGLE_DEG;
 public:
-   void  Init(float offset, FTM_Type *ftm_base_ptr);
+   void  Init(float offset, FTM_Type *ftm_base_ptr, IO_Map_T servo_pin);
 
    float Get_Angle(void);
    float Get_Max_Angle(void);

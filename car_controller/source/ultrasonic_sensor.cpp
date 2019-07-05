@@ -36,8 +36,15 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
    ftm_config_t ftm_info;
    uint8_t ftm_num = 0;
 
+   /* Check for null pointer */
    assert(ftm_base_ptr);
 
+   /* Save the parameters in the instance variables */
+   working_info.ftm_ptr = ftm_base_ptr;
+   working_info.trig    = trig_pin;
+   working_info.echo    = echo_pin;
+
+   /* Determine which FTM will be used */
    switch((uint32_t)ftm_base_ptr)
    {
       case FTM0_BASE:
@@ -61,10 +68,10 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
          assert(false);
    }
 
-   working_info.ftm_ptr = ftm_base_ptr;
-   working_info.trig = trig_pin;
-   working_info.echo = echo_pin;
+   /* Assign a pointer to the working info for this instance */
+   USS_Working_Info[ftm_num] = &working_info;
 
+   /* Initialize the FTM */
    FTM_GetDefaultConfig(&ftm_info);
 
    /* Divide FTM clock by 4 */
@@ -73,8 +80,8 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
    FTM_Init(working_info.ftm_ptr, &ftm_info);
 
    Reroute_FTM_ISR(ftm_num, &USS_FTM_IRQHandler);
-   USS_Working_Info[ftm_num] = &working_info;
 
+   /* Configure the port interrupt for the echo pin */
    switch((uint32_t)Pin_Cfgs[working_info.echo].pbase)
    {
       case PORTA_BASE:

@@ -36,14 +36,16 @@ extern "C"
 static void Servo_FTM_IRQHandler(uint8_t ftm_num);
 }
 
-void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
+void Servo::Init(float offset, FTM_Type *ftm_base_ptr, IO_Map_T servo_pin)
 {
    /* Configure the PWM output */
    ftm_config_t ftmInfo;
    uint8_t ftm_num = 0;
 
+   /* Check for null pointer */
    assert(ftm_base_ptr);
 
+   /* Save the parameters in the instance variables */
    position_offset = offset;
    min_angle += position_offset;
    max_angle -= position_offset;
@@ -53,8 +55,10 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
    pwm.period   = SERVO_PERIOD;
    pwm.on_time  = ANGLE_2_PULSE_WIDTH_TIME(cur_angle + position_offset);
    pwm.off_time = (pwm.period - pwm.on_time);
-   pwm.dc_state = DC_ON;
+   pwm.dc_state =  DC_ON;
+   pwm.pin      = servo_pin;
 
+   /* Determine which FTM will be used */
    switch((uint32_t)pwm.ftm_ptr)
    {
       case FTM0_BASE:
@@ -78,6 +82,10 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
          assert(false);
    }
 
+   /* Assign a pointer to the pwm info for this instance */
+   PWM[ftm_num] = &pwm;
+
+   /* Initialize the FTM */
    FTM_GetDefaultConfig(&ftmInfo);
 
    /* Divide FTM clock by 32 */
@@ -90,9 +98,8 @@ void Servo::Init(float offset, FTM_Type *ftm_base_ptr)
    FTM_EnableInterrupts(pwm.ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
    Reroute_FTM_ISR(ftm_num, &Servo_FTM_IRQHandler);
-   PWM[ftm_num] = &pwm;
 
-   Set_GPIO(SERVO, HIGH);
+   Set_GPIO(pwm.pin, HIGH);
 
    FTM_StartTimer(pwm.ftm_ptr, kFTM_SystemClock);
 
@@ -151,13 +158,13 @@ void Servo_FTM_IRQHandler(uint8_t ftm_num)
 
    if (DC_ON == PWM[ftm_num]->dc_state)
    {
-      Set_GPIO(SERVO, LOW);
+      Set_GPIO(PWM[ftm_num]->pin, LOW);
       FTM_SetTimerPeriod(PWM[ftm_num]->ftm_ptr, USEC_TO_COUNT(PWM[ftm_num]->off_time, FTM_SOURCE_CLOCK));
       PWM[ftm_num]->dc_state = DC_OFF;
    }
    else
    {
-      Set_GPIO(SERVO, HIGH);
+      Set_GPIO(PWM[ftm_num]->pin, HIGH);
       FTM_SetTimerPeriod(PWM[ftm_num]->ftm_ptr, USEC_TO_COUNT(PWM[ftm_num]->on_time, FTM_SOURCE_CLOCK));
       PWM[ftm_num]->dc_state = DC_ON;
    }

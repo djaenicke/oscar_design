@@ -10,7 +10,7 @@
 
 #include "object_detection.h"
 
-#define FORWARD_ONLY
+//#define FORWARD_ONLY
 
 #define SENSOR_FORWARD_OFFSET (0)  /* Degrees */
 #define ROTATION_STEP         (20) /* Degrees */
@@ -22,7 +22,7 @@ void Init_Object_Detection(void)
 {
    float temp_angle;
 
-   Sensor_Servo.Init(SENSOR_FORWARD_OFFSET, FTM3);
+   Sensor_Servo.Init(SENSOR_FORWARD_OFFSET, FTM3, SERVO);
 
    /* Reduce the FOV to protect the servo motor */
    temp_angle = Sensor_Servo.Get_Max_Angle();
