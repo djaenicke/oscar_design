@@ -10,10 +10,13 @@
 #include "ftm_isr_router.h"
 #include "assert.h"
 
-static Fnc_Ptr_T FTM_ISR_Table[NUM_FTMS];
+static FTM_ISR_Fnc_Ptr_T FTM_ISR_Table[NUM_FTMS];
 
-void Reroute_FTM_ISR(uint8_t ftm_num, Fnc_Ptr_T func_ptr)
+void Reroute_FTM_ISR(uint8_t ftm_num, FTM_ISR_Fnc_Ptr_T func_ptr)
 {
+   /* Check for null function pointer */
+   assert(func_ptr);
+
    if (ftm_num < NUM_FTMS)
    {
       if (NULL == FTM_ISR_Table[ftm_num])

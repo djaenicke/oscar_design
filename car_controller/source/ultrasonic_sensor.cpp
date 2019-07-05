@@ -14,6 +14,7 @@
 extern "C"
 {
 #include "ftm_isr_router.h"
+#include "port_isr_router.h"
 }
 
 #define ISR_Flag_Is_Set(input) ((Pin_Cfgs[input].pbase->PCR[Pin_Cfgs[input].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
@@ -27,6 +28,7 @@ static volatile USS_Working_Info_T * USS_Working_Info[NUM_FTMS];
 extern "C"
 {
 static void USS_FTM_IRQHandler(uint8_t ftm_num);
+static void USS_PORT_IRQHandler(uint32_t port_base);
 }
 
 void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T echo_pin)
@@ -76,18 +78,23 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
    switch((uint32_t)Pin_Cfgs[working_info.echo].pbase)
    {
       case PORTA_BASE:
+         Reroute_Port_ISR(PORTA_BASE, &USS_PORT_IRQHandler);
          working_info.echo_irq = PORTA_IRQn;
          break;
       case PORTB_BASE:
+         Reroute_Port_ISR(PORTB_BASE, &USS_PORT_IRQHandler);
          working_info.echo_irq = PORTB_IRQn;
          break;
       case PORTC_BASE:
+         Reroute_Port_ISR(PORTC_BASE, &USS_PORT_IRQHandler);
          working_info.echo_irq = PORTC_IRQn;
          break;
       case PORTD_BASE:
+         Reroute_Port_ISR(PORTD_BASE, &USS_PORT_IRQHandler);
          working_info.echo_irq = PORTD_IRQn;
          break;
       case PORTE_BASE:
+         Reroute_Port_ISR(PORTE_BASE, &USS_PORT_IRQHandler);
          working_info.echo_irq = PORTE_IRQn;
          break;
       default:
@@ -159,29 +166,40 @@ void USS_FTM_IRQHandler(uint8_t ftm_num)
     __DSB();
 }
 
-/* TODO - Add an isr router for the port interrupts */
-void PORTD_IRQHandler(void)
+void USS_PORT_IRQHandler(uint32_t port_base)
 {
    port_interrupt_t p_int_cfg;
-   uint8_t ftm_num = 2;
+   uint8_t inst_num;
 
-   if (ISR_Flag_Is_Set(USS_Working_Info[ftm_num]->echo))
+   /* Find the class instance that is using this port interrupt */
+   for (inst_num=0; inst_num<NUM_FTMS; inst_num++)
    {
-      Clear_ISR_Flag(USS_Working_Info[ftm_num]->echo);
-
-      if (WAIT_ECHO_START == USS_Working_Info[ftm_num]->state)
+      if (NULL != USS_Working_Info[inst_num])
       {
-         USS_Working_Info[ftm_num]->start_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[ftm_num]->ftm_ptr);
+         if (port_base == (uint32_t)Pin_Cfgs[USS_Working_Info[inst_num]->echo].pbase)
+         {
+            break;
+         }
+      }
+   }
+
+   if (ISR_Flag_Is_Set(USS_Working_Info[inst_num]->echo))
+   {
+      Clear_ISR_Flag(USS_Working_Info[inst_num]->echo);
+
+      if (WAIT_ECHO_START == USS_Working_Info[inst_num]->state)
+      {
+         USS_Working_Info[inst_num]->start_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[inst_num]->ftm_ptr);
 
          p_int_cfg = kPORT_InterruptFallingEdge;
-         PORT_SetPinInterruptConfig(Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pbase, \
-                                    Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pin, p_int_cfg);
-         USS_Working_Info[ftm_num]->state = WAIT_ECHO_END;
+         PORT_SetPinInterruptConfig(Pin_Cfgs[USS_Working_Info[inst_num]->echo].pbase, \
+                                    Pin_Cfgs[USS_Working_Info[inst_num]->echo].pin, p_int_cfg);
+         USS_Working_Info[inst_num]->state = WAIT_ECHO_END;
       }
-      else if (WAIT_ECHO_END == USS_Working_Info[ftm_num]->state)
+      else if (WAIT_ECHO_END == USS_Working_Info[inst_num]->state)
       {
-         USS_Working_Info[ftm_num]->end_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[ftm_num]->ftm_ptr);
-         DisableIRQ(USS_Working_Info[ftm_num]->echo_irq);
+         USS_Working_Info[inst_num]->end_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[inst_num]->ftm_ptr);
+         DisableIRQ(USS_Working_Info[inst_num]->echo_irq);
       }
    }
 }
