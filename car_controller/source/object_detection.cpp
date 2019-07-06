@@ -10,7 +10,7 @@
 
 #include "object_detection.h"
 
-//#define FORWARD_ONLY
+#define FORWARD_ONLY
 
 #define SENSOR_FORWARD_OFFSET (0)  /* Degrees */
 #define ROTATION_STEP         (20) /* Degrees */
@@ -44,13 +44,22 @@ void Init_Object_Detection(void)
 
 void Object_Detection_Task(void *pvParameters)
 {
-   float cur_angle;
-   float obj_dist;
+   static bool first_loop = true;
+   float obj_dist = 0.0f;
+   float cur_angle = 0.0f;
 
    while(1)
    {
       /* See if previous loop detected an object */
-      obj_dist = USS_Sensor.Get_Obj_Dist();
+      if (!first_loop)
+      {
+         obj_dist = USS_Sensor.Get_Obj_Dist();
+      }
+      else
+      {
+         first_loop = false;
+      }
+
       cur_angle = Sensor_Servo.Get_Angle();
 
 #ifndef FORWARD_ONLY
@@ -64,6 +73,7 @@ void Object_Detection_Task(void *pvParameters)
          Sensor_Servo.Set_Angle(cur_angle);
       }
 #endif
+
       /* Scan for object here */
       USS_Sensor.Trigger();
 

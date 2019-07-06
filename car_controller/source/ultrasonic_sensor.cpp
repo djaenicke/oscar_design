@@ -20,9 +20,12 @@ extern "C"
 #define ISR_Flag_Is_Set(input) ((Pin_Cfgs[input].pbase->PCR[Pin_Cfgs[input].pin] >> PORT_PCR_ISF_SHIFT) && (uint32_t) 0x01)
 #define Clear_ISR_Flag(input)  Pin_Cfgs[input].pbase->PCR[Pin_Cfgs[input].pin] |= PORT_PCR_ISF(1)
 
-#define FTM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_BusClk)/4)
+#define FTM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_BusClk)/16)
 #define TRIG_PULSE_TIME (15) /* microseconds */
 
+#define SPEED_OF_SOUND (343.0f) /* m/s */
+
+static float Pulse_Width_2_Dist_Factor;
 static volatile USS_Working_Info_T * USS_Working_Info[NUM_FTMS];
 
 extern "C"
@@ -35,6 +38,7 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
 {
    ftm_config_t ftm_info;
    uint8_t ftm_num = 0;
+   port_interrupt_t p_int_cfg;
 
    /* Check for null pointer */
    assert(ftm_base_ptr);
@@ -74,8 +78,8 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
    /* Initialize the FTM */
    FTM_GetDefaultConfig(&ftm_info);
 
-   /* Divide FTM clock by 4 */
-   ftm_info.prescale = kFTM_Prescale_Divide_4;
+   /* Divide FTM clock by 16 */
+   ftm_info.prescale = kFTM_Prescale_Divide_16;
 
    FTM_Init(working_info.ftm_ptr, &ftm_info);
 
@@ -110,17 +114,25 @@ void UltrasonicSensor::Init(FTM_Type *ftm_base_ptr, IO_Map_T trig_pin, IO_Map_T 
 
    NVIC_SetPriority(working_info.echo_irq, USS_ECHO_PRIO);
 
+   p_int_cfg = kPORT_InterruptEitherEdge;
+   PORT_SetPinInterruptConfig(Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pbase, \
+                              Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pin, p_int_cfg);
+
    PORT_ClearPinsInterruptFlags(Pin_Cfgs[working_info.echo].pbase, 0xFFFFFFFF);
+   EnableIRQ(USS_Working_Info[ftm_num]->echo_irq);
+
+   /* Pre-calculate this factor to reduce future computations */
+   Pulse_Width_2_Dist_Factor = (1.0f/FTM_SOURCE_CLOCK)*SPEED_OF_SOUND/2;
 }
 
 void UltrasonicSensor::Trigger(void)
 {
+   FTM_StopTimer(working_info.ftm_ptr);
+   working_info.ftm_ptr->CNT = 0;
    FTM_SetTimerPeriod(working_info.ftm_ptr, USEC_TO_COUNT(TRIG_PULSE_TIME, FTM_SOURCE_CLOCK));
 
    Set_GPIO(working_info.trig, HIGH);
-
    working_info.state = TRIG;
-   working_info.ftm_ptr->CNT = 0;
 
    FTM_StartTimer(working_info.ftm_ptr, kFTM_SystemClock);
 
@@ -131,13 +143,13 @@ float UltrasonicSensor::Get_Obj_Dist(void)
 {
    float dist = 0;
 
-   if (working_info.end_cnt > working_info.start_cnt)
+   if ((working_info.end_cnt > working_info.start_cnt) && (working_info.start_cnt != 0))
    {
-      dist = (working_info.end_cnt - working_info.start_cnt)*(1.0f/15000000)*343/2*100;
+      dist = (working_info.end_cnt - working_info.start_cnt)*Pulse_Width_2_Dist_Factor;
    }
    else
    {
-      dist = ((UINT16_MAX - working_info.start_cnt) + working_info.end_cnt)*(1.0f/15000000)*343/2*100;
+      dist = ((UINT16_MAX - working_info.start_cnt) + working_info.end_cnt)*Pulse_Width_2_Dist_Factor;
    }
 
    return (dist);
@@ -147,25 +159,22 @@ extern "C"
 {
 void USS_FTM_IRQHandler(uint8_t ftm_num)
 {
-   port_interrupt_t p_int_cfg;
-
    FTM_StopTimer(USS_Working_Info[ftm_num]->ftm_ptr);
    USS_Working_Info[ftm_num]->ftm_ptr->CNT = 0;
+   FTM_SetTimerPeriod(USS_Working_Info[ftm_num]->ftm_ptr, UINT16_MAX);
 
    if (TRIG == USS_Working_Info[ftm_num]->state)
    {
       Set_GPIO(USS_Working_Info[ftm_num]->trig, LOW);
       USS_Working_Info[ftm_num]->state = WAIT_ECHO_START;
-
-      /* Enable interrupt to detect echo pulse */
-      /* Configure the pin change interrupt to detect the echo pulse */
-      p_int_cfg = kPORT_InterruptRisingEdge;
-      PORT_SetPinInterruptConfig(Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pbase, \
-                                 Pin_Cfgs[USS_Working_Info[ftm_num]->echo].pin, p_int_cfg);
       EnableIRQ(USS_Working_Info[ftm_num]->echo_irq);
-      FTM_StartTimer(USS_Working_Info[ftm_num]->ftm_ptr, kFTM_SystemClock);
+   }
+   else
+   {
+      assert(false);
    }
 
+   FTM_StartTimer(USS_Working_Info[ftm_num]->ftm_ptr, kFTM_SystemClock);
    FTM_DisableInterrupts(USS_Working_Info[ftm_num]->ftm_ptr, kFTM_TimeOverflowInterruptEnable);
 
    /* Clear interrupt flag.*/
@@ -175,8 +184,8 @@ void USS_FTM_IRQHandler(uint8_t ftm_num)
 
 void USS_PORT_IRQHandler(uint32_t port_base)
 {
-   port_interrupt_t p_int_cfg;
    uint8_t inst_num;
+   uint32_t cnt;
 
    /* Find the class instance that is using this port interrupt */
    for (inst_num=0; inst_num<NUM_FTMS; inst_num++)
@@ -194,20 +203,20 @@ void USS_PORT_IRQHandler(uint32_t port_base)
    {
       Clear_ISR_Flag(USS_Working_Info[inst_num]->echo);
 
+      cnt = FTM_GetCurrentTimerCount(USS_Working_Info[inst_num]->ftm_ptr);
+
       if (WAIT_ECHO_START == USS_Working_Info[inst_num]->state)
       {
-         USS_Working_Info[inst_num]->start_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[inst_num]->ftm_ptr);
-
-         p_int_cfg = kPORT_InterruptFallingEdge;
-         PORT_SetPinInterruptConfig(Pin_Cfgs[USS_Working_Info[inst_num]->echo].pbase, \
-                                    Pin_Cfgs[USS_Working_Info[inst_num]->echo].pin, p_int_cfg);
+         USS_Working_Info[inst_num]->start_cnt = cnt;
          USS_Working_Info[inst_num]->state = WAIT_ECHO_END;
       }
       else if (WAIT_ECHO_END == USS_Working_Info[inst_num]->state)
       {
-         USS_Working_Info[inst_num]->end_cnt = FTM_GetCurrentTimerCount(USS_Working_Info[inst_num]->ftm_ptr);
+         USS_Working_Info[inst_num]->end_cnt = cnt;
+         USS_Working_Info[inst_num]->state = IDLE;
          DisableIRQ(USS_Working_Info[inst_num]->echo_irq);
       }
    }
 }
 }
+
