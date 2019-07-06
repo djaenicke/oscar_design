@@ -57,8 +57,8 @@ void Bluetooth_Cmd_Task(void *pvParameters)
          {
            case 'f': Update_Wheel_Speed_Setpoints( 20.0f,  20.0f); break;
            case 'b': Update_Wheel_Speed_Setpoints(-20.0f, -20.0f); break;
-           case 'l': Update_Wheel_Speed_Setpoints(-17.0f,  17.0f); break;
-           case 'r': Update_Wheel_Speed_Setpoints( 17.0f, -17.0f); break;
+           case 'l': Update_Wheel_Speed_Setpoints(-8.0f,    8.0f); break;
+           case 'r': Update_Wheel_Speed_Setpoints( 8.0f,   -8.0f); break;
            case 's': Stop(); break;
            case 'a': break;
            case 'o': Open_Log_File();  break;
