@@ -65,6 +65,7 @@ void BOARD_InitBootPins(void)
        PORT_SetPinMux(Pin_Cfgs[i].pbase, Pin_Cfgs[i].pin, Pin_Cfgs[i].mux);
    }
 
+   /* SDHC pin configurations */
    const port_pin_config_t porte0_pin1_config = {
      kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
      kPORT_FastSlewRate,                                      /* Fast slew rate is configured */

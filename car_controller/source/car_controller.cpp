@@ -61,6 +61,7 @@
 #include "interrupt_prios.h"
 #include "logging_streams.h"
 #include "object_detection.h"
+#include "imu.h"
 
 /*******************************************************************************
  * Definitions
@@ -119,6 +120,7 @@ int main(void)
 void Init_App(void)
 {
    Init_Battery_Monitor();
+   Init_IMU();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
    Init_Object_Detection();
