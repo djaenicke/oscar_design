@@ -21,6 +21,7 @@ typedef struct {
    float dist;
 } Detection_T;
 
+static bool Obj_Det_Enabled = true;
 static Servo Sensor_Servo;
 static UltrasonicSensor USS_Sensor;
 static Detection_T * Detections_Ptr;
@@ -64,42 +65,44 @@ void Object_Detection_Task(void *pvParameters)
 
    while(1)
    {
-      cur_angle = Sensor_Servo.Get_Angle();
-
-      /* See if previous loop detected an object */
-      if (!first_loop)
+      if (Obj_Det_Enabled)
       {
-         det_dist = USS_Sensor.Get_Obj_Dist();
+         cur_angle = Sensor_Servo.Get_Angle();
 
-         Detections_Ptr[det_num].angle = cur_angle - ROBOT_FRAME_TRANSLATION;
-         Detections_Ptr[det_num].dist  = det_dist;
-         det_num++;
-
-         if (det_num == Max_Num_Dets)
+         /* See if previous loop detected an object */
+         if (!first_loop)
          {
-            det_num = 0;
+            det_dist = USS_Sensor.Get_Obj_Dist();
+
+            Detections_Ptr[det_num].angle = cur_angle - ROBOT_FRAME_TRANSLATION;
+            Detections_Ptr[det_num].dist  = det_dist;
+            det_num++;
+
+            if (det_num == Max_Num_Dets)
+            {
+               det_num = 0;
+            }
          }
-      }
-      else
-      {
-         first_loop = false;
-      }
+         else
+         {
+            first_loop = false;
+         }
 
 #ifndef FORWARD_ONLY
-      if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
-      {
-         Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
-      }
-      else
-      {
-         cur_angle = Sensor_Servo.Get_Max_Angle();
-         Sensor_Servo.Set_Angle(cur_angle);
-      }
+         if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
+         {
+            Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
+         }
+         else
+         {
+            cur_angle = Sensor_Servo.Get_Max_Angle();
+            Sensor_Servo.Set_Angle(cur_angle);
+         }
 #endif
 
-      /* Scan for object here */
-      USS_Sensor.Trigger();
-
+         /* Scan for object here */
+         USS_Sensor.Trigger();
+      }
       /* Task cycle time reqs:
        *   - cycle time > 2 * (max range / speed of sound)
        *   - cycle time > 1.67 (ms) * ROTATION_STEP
@@ -108,3 +111,7 @@ void Object_Detection_Task(void *pvParameters)
    }
 }
 
+void Toggle_Obj_Det_Enable(void)
+{
+   Obj_Det_Enabled = true == Obj_Det_Enabled ? false : true;
+}

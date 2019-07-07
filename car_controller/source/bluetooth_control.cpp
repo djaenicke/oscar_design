@@ -13,6 +13,7 @@
 #include "motor_controls.h"
 #include "assert.h"
 #include "interrupt_prios.h"
+#include "object_detection.h"
 
 #define RX_BUFFER_SIZE 10
 
@@ -63,6 +64,7 @@ void Bluetooth_Cmd_Task(void *pvParameters)
            case 'a': break;
            case 'o': Open_Log_File();  break;
            case 'c': Close_Log_File(); break;
+           case 't': Toggle_Obj_Det_Enable(); break;
          }
 
          New_Cmd = false;
