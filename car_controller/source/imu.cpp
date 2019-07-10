@@ -5,6 +5,7 @@
  *      Author: Devin
  */
 
+#include "imu.h"
 #include "fsl_i2c.h"
 #include "fsl_fxos.h"
 #include "fsl_port.h"
@@ -21,11 +22,18 @@
 #define I2C_RELEASE_SCL_GPIO  GPIOE
 #define I2C_RELEASE_SCL_PIN   24U
 
-fxos_handle_t FXOS_Handle = {0};
-fxos_data_t   Sensor_Data = {0};
-fxos_config_t FXOS_Cfg    = {0};
-const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
+#define G (9.81)
 
+static fxos_handle_t FXOS_Handle = {0};
+static fxos_data_t   Sensor_Data = {0};
+static fxos_config_t FXOS_Cfg    = {0};
+static const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
+
+static Accel_Data_T Accel_Data = {0};
+
+static float Accel_Scaling = 0.0f;
+
+static void Read_Accel_Data(void);
 static inline void I2C_Release_Bus(void);
 static void I2C_Release_Bus_Delay(void);
 static inline void I2C_Configure_Pins(void);
@@ -38,6 +46,7 @@ void Init_IMU(void)
    i2c_master_config_t i2c_cfg = {0};
    uint8_t array_addr_size     = 0;
    status_t result             = kStatus_Fail;
+   uint8_t sensor_range        = 0;
 
    I2C_Release_Bus();
    I2C_Configure_Pins();
@@ -63,6 +72,49 @@ void Init_IMU(void)
    {
       PRINTF("\r\nIMU initialize failed!\r\n");
    }
+
+   /* Get sensor range */
+   if (FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &sensor_range, 1) != kStatus_Success)
+   {
+      assert(false);
+   }
+
+   if (0x00 == sensor_range)
+   {
+      Accel_Scaling = (2.0f/8192.0f)*G;
+   }
+   else if (0x01 == sensor_range)
+   {
+      Accel_Scaling = (4.0f/8192.0f)*G;
+   }
+   else if (0x10 == sensor_range)
+   {
+      Accel_Scaling = (8.0f/8192.0f)*G;
+   }
+   else
+   {
+      assert(false);
+   }
+
+   Read_Accel_Data();
+}
+
+static void Read_Accel_Data(void)
+{
+   int16_t ax, ay, az;
+
+   if (FXOS_ReadSensorData(&FXOS_Handle, &Sensor_Data) != kStatus_Success)
+   {
+      assert(false);
+   }
+
+   ax = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelXMSB << 8) | (uint16_t)Sensor_Data.accelXLSB) / 4U;
+   ay = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelYMSB << 8) | (uint16_t)Sensor_Data.accelYLSB) / 4U;
+   az = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelZMSB << 8) | (uint16_t)Sensor_Data.accelZLSB) / 4U;
+
+   Accel_Data.ax = ax * Accel_Scaling;
+   Accel_Data.ay = ay * Accel_Scaling;
+   Accel_Data.az = az * Accel_Scaling;
 }
 
 static void I2C_Release_Bus_Delay(void)
