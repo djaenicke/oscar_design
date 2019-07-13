@@ -1,5 +1,8 @@
 #include <stdint.h>
 
+#include "fsl_i2c.h"
+#include "fsl_ftm.h"
+
 // Using the GY-521 breakout board, I set ADO to 0 by grounding through a 4k7 resistor
 // Seven-bit device address is 110100 for ADO = 0 and 110101 for ADO = 1
 #define ADO 0
@@ -142,11 +145,20 @@ enum Gscale {
 class MPU6050
 {
 private:
-   void Delay(uint32_t ms_delay);
+   FTM_Type *ftm_base;
+   I2C_Type *i2c_base;
+   void Init_Delay_Timer(void);
+   void Delay(uint16_t ms_delay);
+   void Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data);
+   uint8_t Read_Byte(uint8_t addr, uint8_t sub_addr);
+   void Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest);
 public:
+   void Set_FTM(FTM_Type *ftm_base_ptr);
+   void Init_I2C(I2C_Type *i2c_base_ptr);
    void Init(void);
    void Calibrate(float * dest1, float * dest2);
    void Run_Self_Test(float * destination);
+   void Test_Delay(uint16_t ms_delay);
 
    float Get_Gyro_Res(void);
    float Get_Accel_Res(void);
@@ -156,8 +168,4 @@ public:
    int16_t Read_Temp_Data(void);
 
    void Low_Power_Accel_Only(void);
-
-   void Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data);
-   uint8_t Read_Byte(uint8_t addr, uint8_t sub_addr);
-   void Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest);
 };

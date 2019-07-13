@@ -72,7 +72,6 @@
 #define MC_DATA_LOGGING_TASK_PRIO  (configMAX_PRIORITIES - 4U)
 #define BLUETOOTH_CMD_TASK_PRIO    (configMAX_PRIORITIES - 5U)
 
-
 typedef struct Task_Cfg_Tag
 {
     TaskFunction_t func;

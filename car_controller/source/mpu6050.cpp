@@ -1,29 +1,93 @@
 #include <math.h>
 
 #include "mpu6050.h"
-#include "fsl_i2c.h"
+#include "assert.h"
+#include "fsl_common.h"
+
+/* Get source clock for FTM driver */
+#define FTM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_McgFixedFreqClk)/32)
+
+#define MAX_DELAY (1342) /* ms */
 
 static int Gscale = GFS_250DPS;
 static int Ascale = AFS_2G;
+static uint32_t FTM_Clk_Freq = 0;
 
-void MPU6050::Delay(uint32_t ms_delay)
+void MPU6050::Init_Delay_Timer(void)
 {
-   uint32_t i = 0;
+   ftm_config_t ftm_info;
 
-   for (i = 0; i < ms_delay; i++)
-   {
-      __NOP();
-   }
+   FTM_GetDefaultConfig(&ftm_info);
+
+   /* Divide FTM clock by 4 */
+   ftm_info.prescale = kFTM_Prescale_Divide_32;
+
+   FTM_Init(ftm_base, &ftm_info);
+   FTM_SetTimerPeriod(ftm_base, UINT16_MAX);
+
+   ftm_base->CNT = 0;
+
+   FTM_Clk_Freq = FTM_SOURCE_CLOCK;
+}
+
+void MPU6050::Delay(uint16_t ms_delay)
+{
+   uint32_t start_cnt;
+   uint32_t elapsed_cnt;
+   uint64_t elapsed_ms;
+
+   /* Check that Set_FTM has been called */
+   assert(ftm_base);
+
+   /* Verify the delay is achievable without overflowing the FTM */
+   assert(ms_delay <= MAX_DELAY);
+
+   FTM_StartTimer(ftm_base, kFTM_FixedClock);
+   start_cnt = FTM_GetCurrentTimerCount(ftm_base);
+
+   do {
+      elapsed_cnt = FTM_GetCurrentTimerCount(ftm_base) - start_cnt;
+      elapsed_ms = COUNT_TO_MSEC(elapsed_cnt, FTM_Clk_Freq);
+   } while(elapsed_ms < ms_delay);
+
+   FTM_StopTimer(ftm_base);
+   ftm_base->CNT = 0;
+}
+
+void MPU6050::Test_Delay(uint16_t ms_delay)
+{
+   Init_Delay_Timer();
+   Delay(ms_delay);
+   FTM_Deinit(ftm_base);
+}
+
+void MPU6050::Set_FTM(FTM_Type *ftm_base_ptr)
+{
+   assert(ftm_base_ptr);
+   ftm_base = ftm_base_ptr;
+}
+
+void MPU6050::Init_I2C(I2C_Type *i2c_base_ptr)
+{
+   i2c_master_config_t i2c_cfg = {0};
+
+   assert(i2c_base_ptr);
+   i2c_base = i2c_base_ptr;
+
+   I2C_MasterGetDefaultConfig(&i2c_cfg);
+   I2C_MasterInit(i2c_base, &i2c_cfg, CLOCK_GetFreq(kCLOCK_BusClk));
 }
 
 // Configure the motion detection control for low power accelerometer mode
-void MPU6050::Low_Power_Accel_Only()
+void MPU6050::Low_Power_Accel_Only(void)
 {
    // The sensor has a high-pass filter necessary to invoke to allow the sensor motion detection algorithms work properly
    // Motion detection occurs on free-fall (acceleration below a threshold for some time for all axes), motion (acceleration
    // above a threshold for some time on at least one axis), and zero-motion toggle (acceleration on each axis less than a
    // threshold for some time sets this flag, motion above the threshold turns it off). The high-pass filter takes gravity out
    // consideration for these threshold evaluations; otherwise, the flags would be set all the time!
+
+   Init_Delay_Timer();
 
    uint8_t c = Read_Byte(MPU6050_ADDRESS, PWR_MGMT_1);
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c & ~0x30); // Clear sleep and cycle bits [5:6]
@@ -64,6 +128,8 @@ void MPU6050::Low_Power_Accel_Only()
    c = Read_Byte(MPU6050_ADDRESS, PWR_MGMT_1);
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c & ~0x20); // Clear sleep and cycle bit 5
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c |  0x20); // Set cycle bit 5 to begin low power accelerometer motion interrupts
+
+   FTM_Deinit(ftm_base);
 }
 
 void MPU6050::Init(void)
@@ -71,6 +137,9 @@ void MPU6050::Init(void)
    // wake up device-don't need this here if using calibration function below
    //  Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x00); // Clear sleep mode bit (6), enable all sensors
    //  Delay(100); // Delay 100 ms for PLL to get established on x-axis gyro; should check for PLL ready interrupt
+
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
 
    // get stable time source
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x01);  // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
@@ -111,6 +180,11 @@ void MPU6050::Calibrate(float * dest1, float * dest2)
    uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
    uint16_t ii, packet_count, fifo_count;
    int32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
+
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
+
+   Init_Delay_Timer();
 
    // reset device, reset all registers, clear gyro and accelerometer bias registers
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x80); // Write a one to bit 7 reset bit; toggle reset device
@@ -258,8 +332,9 @@ void MPU6050::Calibrate(float * dest1, float * dest2)
    dest2[0] = (float)accel_bias[0] / (float)accelsensitivity;
    dest2[1] = (float)accel_bias[1] / (float)accelsensitivity;
    dest2[2] = (float)accel_bias[2] / (float)accelsensitivity;
-}
 
+   FTM_Deinit(ftm_base);
+}
 
 // Accelerometer and gyroscope self test; check calibration wrt factory settings
 void MPU6050::Run_Self_Test(float * destination) // Should return percent deviation from factory trim values, +/- 14 or less deviation is a pass
@@ -267,6 +342,11 @@ void MPU6050::Run_Self_Test(float * destination) // Should return percent deviat
    uint8_t rawData[4];
    uint8_t selfTest[6];
    float factoryTrim[6];
+
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
+
+   Init_Delay_Timer();
 
    // Configure the accelerometer for self-test
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, 0xF0); // Enable self test on all three axes and set accelerometer range to +/- 8 g
@@ -302,6 +382,8 @@ void MPU6050::Run_Self_Test(float * destination) // Should return percent deviat
    {
       destination[i] = 100.0 + 100.0 * ((float)selfTest[i] - factoryTrim[i]) / factoryTrim[i]; // Report percent differences
    }
+
+   FTM_Deinit(ftm_base);
 }
 
 float MPU6050::Get_Gyro_Res(void)
@@ -358,6 +440,9 @@ void MPU6050::Read_Accel_Data(int16_t * destination)
 {
    uint8_t rawData[6];  // x/y/z accel register data stored here
 
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
+
    Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers into data array
 
    destination[0] = (int16_t)((rawData[0] << 8) | rawData[1]) ;  // Turn the MSB and LSB into a signed 16-bit value
@@ -369,6 +454,9 @@ void MPU6050::Read_Gyro_Data(int16_t * destination)
 {
    uint8_t rawData[6];  // x/y/z gyro register data stored here
 
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
+
    Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
 
    destination[0] = (int16_t)((rawData[0] << 8) | rawData[1]) ;  // Turn the MSB and LSB into a signed 16-bit value
@@ -376,9 +464,12 @@ void MPU6050::Read_Gyro_Data(int16_t * destination)
    destination[2] = (int16_t)((rawData[4] << 8) | rawData[5]) ;
 }
 
-int16_t MPU6050::Read_Temp_Data()
+int16_t MPU6050::Read_Temp_Data(void)
 {
    uint8_t rawData[2];  // x/y/z gyro register data stored here
+
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
 
    Read_Bytes(MPU6050_ADDRESS, TEMP_OUT_H, 2, &rawData[0]);  // Read the two raw data registers sequentially into data array
 
@@ -387,6 +478,7 @@ int16_t MPU6050::Read_Temp_Data()
 
 void MPU6050::Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data)
 {
+   status_t status;
    i2c_master_transfer_t masterXfer;
 
    /* Prepare transfer structure. */
@@ -398,11 +490,33 @@ void MPU6050::Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data)
    masterXfer.dataSize       = 1;
    masterXfer.flags          = kI2C_TransferDefaultFlag;
 
-   I2C_MasterTransferBlocking(I2C0, &masterXfer);
+   status = I2C_MasterTransferBlocking(i2c_base, &masterXfer);
+
+   switch(status)
+   {
+      case kStatus_Success:
+         break;
+      case kStatus_I2C_Busy:
+         assert(false);
+         break;
+      case kStatus_I2C_Timeout:
+         assert(false);
+         break;
+      case kStatus_I2C_ArbitrationLost:
+         assert(false);
+         break;
+      case kStatus_I2C_Nak:
+         assert(false);
+         break;
+      default:
+         assert(false);
+         break;
+   }
 }
 
 uint8_t MPU6050::Read_Byte(uint8_t addr, uint8_t sub_addr)
 {
+   status_t status;
    uint8_t data;
    i2c_master_transfer_t master_xfer;
 
@@ -415,13 +529,35 @@ uint8_t MPU6050::Read_Byte(uint8_t addr, uint8_t sub_addr)
    master_xfer.direction      = kI2C_Read;
    master_xfer.flags          = kI2C_TransferDefaultFlag;
 
-   (void)I2C_MasterTransferBlocking(I2C0, &master_xfer);
+   status = I2C_MasterTransferBlocking(i2c_base, &master_xfer);
+
+   switch(status)
+   {
+      case kStatus_Success:
+         break;
+      case kStatus_I2C_Busy:
+         assert(false);
+         break;
+      case kStatus_I2C_Timeout:
+         assert(false);
+         break;
+      case kStatus_I2C_ArbitrationLost:
+         assert(false);
+         break;
+      case kStatus_I2C_Nak:
+         assert(false);
+         break;
+      default:
+         assert(false);
+         break;
+   }
 
    return data;
 }
 
 void MPU6050::Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest)
 {
+   status_t status;
    i2c_master_transfer_t master_xfer;
 
    /* Prepare transfer structure. */
@@ -433,5 +569,27 @@ void MPU6050::Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t 
    master_xfer.direction      = kI2C_Read;
    master_xfer.flags          = kI2C_TransferDefaultFlag;
 
-   (void)I2C_MasterTransferBlocking(I2C0, &master_xfer);
+   status = I2C_MasterTransferBlocking(i2c_base, &master_xfer);
+
+   switch(status)
+   {
+      case kStatus_Success:
+         break;
+      case kStatus_I2C_Busy:
+         assert(false);
+         break;
+      case kStatus_I2C_Timeout:
+         assert(false);
+         break;
+      case kStatus_I2C_ArbitrationLost:
+         assert(false);
+         break;
+      case kStatus_I2C_Nak:
+         assert(false);
+         break;
+      default:
+         assert(false);
+         break;
+   }
 }
+

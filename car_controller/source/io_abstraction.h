@@ -41,6 +41,8 @@ typedef enum
     L_SPEED_SENSOR,
     USS_TRIGGER,
     USS_ECHO,
+    MPU6050_SCL,
+    MPU6050_SDA,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

@@ -23,8 +23,10 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
     {PORTB, GPIOB,  2, kPORT_PinDisabledOrAnalog, kGPIO_DigitalOutput, NA},   /* VBATT */
     {PORTB, GPIOB, 18, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
     {PORTC, GPIOC,  8, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR */
-    {PORTC, GPIOC, 10, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* Trigger Pin for USS */
+    {PORTB, GPIOB, 11, kPORT_MuxAsGpio,           kGPIO_DigitalOutput, LOW},  /* Trigger Pin for USS */
     {PORTD, GPIOD,  3, kPORT_MuxAsGpio,           kGPIO_DigitalInput,  NA},   /* Echo Pin for USS */
+    {PORTC, GPIOC, 10, kPORT_MuxAlt2,             kGPIO_DigitalInput,  NA},   /* MPU6050 SCL */
+    {PORTC, GPIOC, 11, kPORT_MuxAlt2,             kGPIO_DigitalInput,  NA}    /* MPU6050 SDA */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
