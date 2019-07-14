@@ -24,18 +24,15 @@
 #define I2C_RELEASE_SCL_PIN   24U
 
 static MPU6050 My_MPU6050;
+
 static fxos_handle_t FXOS_Handle = {0};
-static fxos_data_t   Sensor_Data = {0};
 static fxos_config_t FXOS_Cfg    = {0};
 static const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
 
-static Accel_Data_T Onboard_Accel_Data = {0};
 static Accel_Data_T MPU6050_Accel_Data = {0};
+static Gyro_Data_T  MPU6050_Gyro_Data  = {0};
 
-static float Onboard_Accel_Scaling = 0.0f;
-
-static inline void Init_Onboard_IMU(void);
-static void Read_Accel_Data(void);
+static inline void Init_Onboard_Sensor(void);
 static inline void I2C_Release_Bus(void);
 static void I2C_Release_Bus_Delay(void);
 static inline void I2C_Configure_Pins(void);
@@ -48,18 +45,19 @@ void Init_IMU(void)
    /* Initialize the external 6-axis MPU6050 */
    My_MPU6050.Init(FTM0, I2C1);
 
-   /* Initialize the 6-axis on board IMU */
-   Init_Onboard_IMU();
+   /* Initialize the 6-axis on board sensor */
+   Init_Onboard_Sensor();
 
-   Read_Accel_Data();
+   /* Get readings from MPU6050 sensor */
+   My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
+   My_MPU6050.Read_Gyro_Data(&MPU6050_Gyro_Data);
 }
 
-static inline void Init_Onboard_IMU(void)
+static inline void Init_Onboard_Sensor(void)
 {
    i2c_master_config_t i2c_cfg = {0};
    uint8_t array_addr_size     = 0;
    status_t result             = kStatus_Fail;
-   uint8_t sensor_range        = 0;
 
    I2C_Release_Bus();
    I2C_Configure_Pins();
@@ -73,7 +71,6 @@ static inline void Init_Onboard_IMU(void)
    for (uint8_t i = 0; i < array_addr_size; i++)
    {
       FXOS_Cfg.slaveAddress = FXOS_Dev_Addr[i];
-      /* Initialize accelerometer sensor */
       result = FXOS_Init(&FXOS_Handle, &FXOS_Cfg);
       if (kStatus_Success == result)
       {
@@ -85,51 +82,6 @@ static inline void Init_Onboard_IMU(void)
    {
       PRINTF("\r\nIMU initialize failed!\r\n");
    }
-
-   /* Get sensor range */
-   if (FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &sensor_range, 1) != kStatus_Success)
-   {
-      assert(false);
-   }
-
-   if (0x00 == sensor_range)
-   {
-      Onboard_Accel_Scaling = (2.0f/8192.0f) * G;
-   }
-   else if (0x01 == sensor_range)
-   {
-      Onboard_Accel_Scaling = (4.0f/8192.0f) * G;
-   }
-   else if (0x10 == sensor_range)
-   {
-      Onboard_Accel_Scaling = (8.0f/8192.0f) * G;
-   }
-   else
-   {
-      assert(false);
-   }
-}
-
-static void Read_Accel_Data(void)
-{
-   int16_t a[3];
-
-   /* Get readings from onboard sensor */
-   if (FXOS_ReadSensorData(&FXOS_Handle, &Sensor_Data) != kStatus_Success)
-   {
-      assert(false);
-   }
-
-   a[0] = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelXMSB << 8) | (uint16_t)Sensor_Data.accelXLSB) / 4U;
-   a[1] = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelYMSB << 8) | (uint16_t)Sensor_Data.accelYLSB) / 4U;
-   a[2] = (int16_t)((uint16_t)((uint16_t)Sensor_Data.accelZMSB << 8) | (uint16_t)Sensor_Data.accelZLSB) / 4U;
-
-   Onboard_Accel_Data.ax = a[0] * Onboard_Accel_Scaling;
-   Onboard_Accel_Data.ay = a[1] * Onboard_Accel_Scaling;
-   Onboard_Accel_Data.az = a[2] * Onboard_Accel_Scaling;
-
-   /* Get readings from MPU6050 sensor */
-   My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
 }
 
 static void I2C_Release_Bus_Delay(void)
@@ -233,7 +185,6 @@ status_t IMU_I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_siz
     masterXfer.flags          = kI2C_TransferDefaultFlag;
 
     return I2C_MasterTransferBlocking(I2C0, &masterXfer);
-
 }
 
 status_t IMU_I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \

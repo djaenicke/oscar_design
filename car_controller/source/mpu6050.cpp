@@ -299,7 +299,7 @@ void MPU6050::Calibrate(void)
    data[5] = (-gyro_bias[2] / 4)       & 0xFF;
 
    // Push gyro biases to hardware registers
-   Write_Byte(MPU6050_ADDRESS, XG_OFFS_USRH, data[0]);// might not be supported in MPU6050
+   Write_Byte(MPU6050_ADDRESS, XG_OFFS_USRH, data[0]);
    Write_Byte(MPU6050_ADDRESS, XG_OFFS_USRL, data[1]);
    Write_Byte(MPU6050_ADDRESS, YG_OFFS_USRH, data[2]);
    Write_Byte(MPU6050_ADDRESS, YG_OFFS_USRL, data[3]);
@@ -351,7 +351,7 @@ void MPU6050::Calibrate(void)
    data[5] = data[5] | mask_bit[2]; // preserve temperature compensation bit when writing back to accelerometer bias registers
 
    // Push accelerometer biases to hardware registers
-   Write_Byte(MPU6050_ADDRESS, XA_OFFSET_H, data[0]); // might not be supported in MPU6050
+   Write_Byte(MPU6050_ADDRESS, XA_OFFSET_H, data[0]);
    Write_Byte(MPU6050_ADDRESS, XA_OFFSET_L_TC, data[1]);
    Write_Byte(MPU6050_ADDRESS, YA_OFFSET_H, data[2]);
    Write_Byte(MPU6050_ADDRESS, YA_OFFSET_L_TC, data[3]);
@@ -486,23 +486,28 @@ void MPU6050::Read_Accel_Data(Accel_Data_T * destination)
    a[Y] = (int16_t)((raw_data[2] << 8) | raw_data[3]) ;
    a[Z] = (int16_t)((raw_data[4] << 8) | raw_data[5]) ;
 
-   destination->ax = (a[X] * scalings.accel) - biases.accel[X];
-   destination->ay = (a[Y] * scalings.accel) - biases.accel[Y];
-   destination->az = (a[Z] * scalings.accel) - biases.accel[Z];
+   destination->ax = (a[X] * scalings.accel);
+   destination->ay = (a[Y] * scalings.accel);
+   destination->az = (a[Z] * scalings.accel);
 }
 
-void MPU6050::Read_Gyro_Data(int16_t * destination)
+void MPU6050::Read_Gyro_Data(Gyro_Data_T * destination)
 {
-   uint8_t rawData[6];  // x/y/z gyro register data stored here
+   uint8_t rawData[NUM_DIMS*2];  // x/y/z gyro register data stored here
+   int16_t g[NUM_DIMS];
 
    /* Check that Init_I2C has been called */
    assert(i2c_base);
 
-   Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers sequentially into data array
+   Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, NUM_DIMS*2, &rawData[0]);  /* Read the six raw data registers sequentially into data array */
 
-   destination[0] = (int16_t)((rawData[0] << 8) | rawData[1]) ;  // Turn the MSB and LSB into a signed 16-bit value
-   destination[1] = (int16_t)((rawData[2] << 8) | rawData[3]) ;
-   destination[2] = (int16_t)((rawData[4] << 8) | rawData[5]) ;
+   g[X] = (int16_t)((rawData[0] << 8) | rawData[1]);  /* Turn the MSB and LSB into a signed 16-bit value */
+   g[Y] = (int16_t)((rawData[2] << 8) | rawData[3]);
+   g[Z] = (int16_t)((rawData[4] << 8) | rawData[5]);
+
+   destination->gx = (g[X] * scalings.gyro);
+   destination->gy = (g[Y] * scalings.gyro);
+   destination->gz = (g[Z] * scalings.gyro);
 }
 
 float MPU6050::Read_Die_Temp(void)

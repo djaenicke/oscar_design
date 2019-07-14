@@ -153,6 +153,12 @@ typedef struct {
    float az;
 } Accel_Data_T;
 
+typedef struct {
+   float gx;
+   float gy;
+   float gz;
+} Gyro_Data_T;
+
 typedef enum {
    X=0,
    Y,
@@ -184,15 +190,18 @@ private:
    void Calibrate(void);
    void Run_Self_Test(void);
    void Test_Delay(uint16_t ms_delay);
+   void Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data);
+   void Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest);
+
    float Get_Gyro_Res(void);
    float Get_Accel_Res(void);
-   void Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data);
+
    uint8_t Read_Byte(uint8_t addr, uint8_t sub_addr);
-   void Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest);
 public:
    void Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr);
    void Read_Accel_Data(Accel_Data_T * destination);
-   void Read_Gyro_Data(int16_t * destination);
-   float Read_Die_Temp(void);
+   void Read_Gyro_Data(Gyro_Data_T * destination);
    void Low_Power_Accel_Only(void);
+
+   float Read_Die_Temp(void);
 };
