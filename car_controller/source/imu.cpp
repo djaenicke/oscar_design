@@ -23,8 +23,6 @@
 #define I2C_RELEASE_SCL_GPIO  GPIOE
 #define I2C_RELEASE_SCL_PIN   24U
 
-#define G (9.81f)
-
 static MPU6050 My_MPU6050;
 static fxos_handle_t FXOS_Handle = {0};
 static fxos_data_t   Sensor_Data = {0};
@@ -35,7 +33,6 @@ static Accel_Data_T Onboard_Accel_Data = {0};
 static Accel_Data_T MPU6050_Accel_Data = {0};
 
 static float Onboard_Accel_Scaling = 0.0f;
-static float MPU6050_Accel_Scaling = 0.0f;
 
 static inline void Init_Onboard_IMU(void);
 static void Read_Accel_Data(void);
@@ -48,14 +45,8 @@ status_t IMU_I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, 
 
 void Init_IMU(void)
 {
-   float res1[3], res2[3], res3[6];
-
    /* Initialize the external 6-axis MPU6050 */
-   My_MPU6050.Set_FTM(FTM0);
-   My_MPU6050.Init_I2C(I2C1);
-   My_MPU6050.Calibrate(res1, res2);
-   My_MPU6050.Run_Self_Test(res3);
-   MPU6050_Accel_Scaling = My_MPU6050.Get_Accel_Res() * G;
+   My_MPU6050.Init(FTM0, I2C1);
 
    /* Initialize the 6-axis on board IMU */
    Init_Onboard_IMU();
@@ -138,11 +129,7 @@ static void Read_Accel_Data(void)
    Onboard_Accel_Data.az = a[2] * Onboard_Accel_Scaling;
 
    /* Get readings from MPU6050 sensor */
-   My_MPU6050.Read_Accel_Data(a);
-
-   MPU6050_Accel_Data.ax = a[0] * MPU6050_Accel_Scaling;
-   MPU6050_Accel_Data.ay = a[1] * MPU6050_Accel_Scaling;
-   MPU6050_Accel_Data.az = a[2] * MPU6050_Accel_Scaling;
+   My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
 }
 
 static void I2C_Release_Bus_Delay(void)

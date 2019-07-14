@@ -61,21 +61,22 @@ void MPU6050::Test_Delay(uint16_t ms_delay)
    FTM_Deinit(ftm_base);
 }
 
-void MPU6050::Set_FTM(FTM_Type *ftm_base_ptr)
+bool MPU6050::Test_Basic_I2C(void)
 {
-   assert(ftm_base_ptr);
-   ftm_base = ftm_base_ptr;
-}
+   bool test_passed = true;
+   uint8_t actual_addr = 0;
 
-void MPU6050::Init_I2C(I2C_Type *i2c_base_ptr)
-{
-   i2c_master_config_t i2c_cfg = {0};
+   /* Check that Init_I2C has been called */
+   assert(i2c_base);
 
-   assert(i2c_base_ptr);
-   i2c_base = i2c_base_ptr;
+   actual_addr = Read_Byte(MPU6050_ADDRESS, WHO_AM_I_MPU6050);
 
-   I2C_MasterGetDefaultConfig(&i2c_cfg);
-   I2C_MasterInit(i2c_base, &i2c_cfg, CLOCK_GetFreq(kCLOCK_BusClk));
+   if (actual_addr != MPU6050_ADDRESS)
+   {
+      test_passed = false;
+   }
+
+   return (test_passed);
 }
 
 // Configure the motion detection control for low power accelerometer mode
@@ -132,14 +133,35 @@ void MPU6050::Low_Power_Accel_Only(void)
    FTM_Deinit(ftm_base);
 }
 
-void MPU6050::Init(void)
+void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
 {
-   // wake up device-don't need this here if using calibration function below
-   //  Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x00); // Clear sleep mode bit (6), enable all sensors
-   //  Delay(100); // Delay 100 ms for PLL to get established on x-axis gyro; should check for PLL ready interrupt
+   i2c_master_config_t i2c_cfg = {0};
+   uint8_t c;
 
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
+   /* Initialize I2C */
+   assert(i2c_base_ptr);
+   i2c_base = i2c_base_ptr;
+   I2C_MasterGetDefaultConfig(&i2c_cfg);
+   i2c_cfg.baudRate_Bps = 400000;
+   I2C_MasterInit(i2c_base, &i2c_cfg, CLOCK_GetFreq(kCLOCK_BusClk));
+
+   /* Assign the FTM */
+   assert(ftm_base_ptr);
+   ftm_base = ftm_base_ptr;
+
+   if (Test_Basic_I2C())
+   {
+      Run_Self_Test();
+      Calibrate();
+      scalings.accel = Get_Accel_Res() * G;
+      scalings.gyro = Get_Gyro_Res();
+   }
+   else
+   {
+      assert(false);
+   }
+
+   Init_Delay_Timer();
 
    // get stable time source
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x01);  // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
@@ -149,19 +171,20 @@ void MPU6050::Init(void)
    // DLPF_CFG = bits 2:0 = 010; this sets the sample rate at 1 kHz for both
    // Maximum Delay time is 4.9 ms corresponding to just over 200 Hz sample rate
    Write_Byte(MPU6050_ADDRESS, CONFIG, 0x03);
+   c = Read_Byte(MPU6050_ADDRESS, CONFIG);
 
    // Set sample rate = gyroscope output rate/(1 + SMPLRT_DIV)
    Write_Byte(MPU6050_ADDRESS, SMPLRT_DIV, 0x04);  // Use a 200 Hz rate; the same rate set in CONFIG above
 
    // Set gyroscope full scale range
    // Range selects FS_SEL and AFS_SEL are 0 - 3, so 2-bit values are left-shifted into positions 4:3
-   uint8_t c =  Read_Byte(MPU6050_ADDRESS, GYRO_CONFIG);
+   c = Read_Byte(MPU6050_ADDRESS, GYRO_CONFIG);
    Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c & ~0xE0); // Clear self-test bits [7:5]
    Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c & ~0x18); // Clear AFS bits [4:3]
    Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c | Gscale << 3); // Set full scale range for the gyro
 
    // Set accelerometer configuration
-   c =  Read_Byte(MPU6050_ADDRESS, ACCEL_CONFIG);
+   c = Read_Byte(MPU6050_ADDRESS, ACCEL_CONFIG);
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c & ~0xE0); // Clear self-test bits [7:5]
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c & ~0x18); // Clear AFS bits [4:3]
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c | Ascale << 3); // Set full scale range for the accelerometer
@@ -171,11 +194,18 @@ void MPU6050::Init(void)
    // can join the I2C bus and all can be controlled by the Arduino as master
    Write_Byte(MPU6050_ADDRESS, INT_PIN_CFG, 0x22);
    Write_Byte(MPU6050_ADDRESS, INT_ENABLE, 0x01);  // Enable data ready (bit 0) interrupt
+
+   Delay(50);
+
+   FTM_Deinit(ftm_base);
+
+   // Wait for data to be available
+   while(!(Read_Byte(MPU6050_ADDRESS, INT_STATUS) & 0x01));
 }
 
 // Function which accumulates gyro and accelerometer data after device initialization. It calculates the average
 // of the at-rest readings and then loads the resulting offsets into accelerometer and gyro bias registers.
-void MPU6050::Calibrate(float * dest1, float * dest2)
+void MPU6050::Calibrate(void)
 {
    uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
    uint16_t ii, packet_count, fifo_count;
@@ -276,9 +306,9 @@ void MPU6050::Calibrate(float * dest1, float * dest2)
    Write_Byte(MPU6050_ADDRESS, ZG_OFFS_USRH, data[4]);
    Write_Byte(MPU6050_ADDRESS, ZG_OFFS_USRL, data[5]);
 
-   dest1[0] = (float) gyro_bias[0] / (float) gyrosensitivity; // construct gyro bias in deg/s for later manual subtraction
-   dest1[1] = (float) gyro_bias[1] / (float) gyrosensitivity;
-   dest1[2] = (float) gyro_bias[2] / (float) gyrosensitivity;
+   biases.gyro[X] = (float) gyro_bias[0] / (float) gyrosensitivity; // construct gyro bias in deg/s for later manual subtraction
+   biases.gyro[Y] = (float) gyro_bias[1] / (float) gyrosensitivity;
+   biases.gyro[Z] = (float) gyro_bias[2] / (float) gyrosensitivity;
 
    // Construct the accelerometer biases for push to the hardware accelerometer bias registers. These registers contain
    // factory trim values which must be added to the calculated accelerometer biases; on boot up these registers will hold
@@ -329,19 +359,19 @@ void MPU6050::Calibrate(float * dest1, float * dest2)
    Write_Byte(MPU6050_ADDRESS, ZA_OFFSET_L_TC, data[5]);
 
    // Output scaled accelerometer biases for manual subtraction in the main program
-   dest2[0] = (float)accel_bias[0] / (float)accelsensitivity;
-   dest2[1] = (float)accel_bias[1] / (float)accelsensitivity;
-   dest2[2] = (float)accel_bias[2] / (float)accelsensitivity;
+   biases.accel[X] = (float)accel_bias[0] / (float)accelsensitivity;
+   biases.accel[Y] = (float)accel_bias[1] / (float)accelsensitivity;
+   biases.accel[Z] = (float)accel_bias[2] / (float)accelsensitivity;
 
    FTM_Deinit(ftm_base);
 }
 
 // Accelerometer and gyroscope self test; check calibration wrt factory settings
-void MPU6050::Run_Self_Test(float * destination) // Should return percent deviation from factory trim values, +/- 14 or less deviation is a pass
+void MPU6050::Run_Self_Test(void) // Should return percent deviation from factory trim values, +/- 14 or less deviation is a pass
 {
    uint8_t rawData[4];
-   uint8_t selfTest[6];
-   float factoryTrim[6];
+   uint8_t selfTest[NUM_DIMS*2];
+   float factoryTrim[NUM_DIMS*2], results[NUM_DIMS*2];
 
    /* Check that Init_I2C has been called */
    assert(i2c_base);
@@ -378,9 +408,15 @@ void MPU6050::Run_Self_Test(float * destination) // Should return percent deviat
 
    // Report results as a ratio of (STR - FT)/FT; the change from Factory Trim of the Self-Test Response
    // To get to percent, must multiply by 100 and subtract result from 100
-   for (int i = 0; i < 6; i++)
+   for (int i = 0; i < NUM_DIMS*2; i++)
    {
-      destination[i] = 100.0 + 100.0 * ((float)selfTest[i] - factoryTrim[i]) / factoryTrim[i]; // Report percent differences
+      results[i] = 100.0 + 100.0 * ((float)selfTest[i] - factoryTrim[i]) / factoryTrim[i]; // Report percent differences
+
+      if (results[i] > SELFTEST_PASS_THRESHOLD)
+      {
+         assert(false);
+      }
+
    }
 
    FTM_Deinit(ftm_base);
@@ -436,18 +472,23 @@ float MPU6050::Get_Accel_Res(void)
    }
 }
 
-void MPU6050::Read_Accel_Data(int16_t * destination)
+void MPU6050::Read_Accel_Data(Accel_Data_T * destination)
 {
-   uint8_t rawData[6];  // x/y/z accel register data stored here
+   uint8_t raw_data[NUM_DIMS*2];  /* x/y/z accel register data stored here */
+   int16_t a[NUM_DIMS];
 
-   /* Check that Init_I2C has been called */
+   /* Check that Init has been called */
    assert(i2c_base);
 
-   Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, 6, &rawData[0]);  // Read the six raw data registers into data array
+   Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, NUM_DIMS*2, &raw_data[0]);  /* Read the six raw data registers into data array */
 
-   destination[0] = (int16_t)((rawData[0] << 8) | rawData[1]) ;  // Turn the MSB and LSB into a signed 16-bit value
-   destination[1] = (int16_t)((rawData[2] << 8) | rawData[3]) ;
-   destination[2] = (int16_t)((rawData[4] << 8) | rawData[5]) ;
+   a[X] = (int16_t)((raw_data[0] << 8) | raw_data[1]) ;  /* Turn the MSB and LSB into a signed 16-bit value */
+   a[Y] = (int16_t)((raw_data[2] << 8) | raw_data[3]) ;
+   a[Z] = (int16_t)((raw_data[4] << 8) | raw_data[5]) ;
+
+   destination->ax = (a[X] * scalings.accel) - biases.accel[X];
+   destination->ay = (a[Y] * scalings.accel) - biases.accel[Y];
+   destination->az = (a[Z] * scalings.accel) - biases.accel[Z];
 }
 
 void MPU6050::Read_Gyro_Data(int16_t * destination)
@@ -464,16 +505,19 @@ void MPU6050::Read_Gyro_Data(int16_t * destination)
    destination[2] = (int16_t)((rawData[4] << 8) | rawData[5]) ;
 }
 
-int16_t MPU6050::Read_Temp_Data(void)
+float MPU6050::Read_Die_Temp(void)
 {
    uint8_t rawData[2];  // x/y/z gyro register data stored here
+   float ret_val;
 
    /* Check that Init_I2C has been called */
    assert(i2c_base);
 
    Read_Bytes(MPU6050_ADDRESS, TEMP_OUT_H, 2, &rawData[0]);  // Read the two raw data registers sequentially into data array
 
-   return ((int16_t)rawData[0]) << 8 | rawData[1] ;  // Turn the MSB and LSB into a 16-bit value
+   ret_val = (((int16_t)((rawData[0] << 8) | rawData[1]))/TEMP_SENSITIVITY) + TEMP_OFFSET; /* Convert to deg C */
+
+   return(ret_val);
 }
 
 void MPU6050::Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data)

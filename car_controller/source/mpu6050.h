@@ -142,30 +142,57 @@ enum Gscale {
 #define FIFO_R_W           0x74
 #define WHO_AM_I_MPU6050   0x75 // Should return 0x68
 
+#define SELFTEST_PASS_THRESHOLD (1.0f) /* (%) */
+#define G (9.81)
+#define TEMP_SENSITIVITY (340.0f)
+#define TEMP_OFFSET (36.53)
+
+typedef struct {
+   float ax;
+   float ay;
+   float az;
+} Accel_Data_T;
+
+typedef enum {
+   X=0,
+   Y,
+   Z,
+   NUM_DIMS
+} Dimensions_T;
+
+typedef struct {
+   float accel[NUM_DIMS];
+   float gyro[NUM_DIMS];
+} Meas_Biases_T;
+
+typedef struct {
+   float accel;
+   float gyro;
+} Meas_Scalings_T;
+
 class MPU6050
 {
 private:
    FTM_Type *ftm_base;
    I2C_Type *i2c_base;
+   Meas_Biases_T biases;
+   Meas_Scalings_T scalings;
+
+   bool Test_Basic_I2C(void);
    void Init_Delay_Timer(void);
    void Delay(uint16_t ms_delay);
+   void Calibrate(void);
+   void Run_Self_Test(void);
+   void Test_Delay(uint16_t ms_delay);
+   float Get_Gyro_Res(void);
+   float Get_Accel_Res(void);
    void Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data);
    uint8_t Read_Byte(uint8_t addr, uint8_t sub_addr);
    void Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest);
 public:
-   void Set_FTM(FTM_Type *ftm_base_ptr);
-   void Init_I2C(I2C_Type *i2c_base_ptr);
-   void Init(void);
-   void Calibrate(float * dest1, float * dest2);
-   void Run_Self_Test(float * destination);
-   void Test_Delay(uint16_t ms_delay);
-
-   float Get_Gyro_Res(void);
-   float Get_Accel_Res(void);
-
-   void Read_Accel_Data(int16_t * destination);
+   void Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr);
+   void Read_Accel_Data(Accel_Data_T * destination);
    void Read_Gyro_Data(int16_t * destination);
-   int16_t Read_Temp_Data(void);
-
+   float Read_Die_Temp(void);
    void Low_Power_Accel_Only(void);
 };
