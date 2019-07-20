@@ -21,6 +21,8 @@
 #include "logging_streams.h"
 #include "assert.h"
 
+//#define OPEN_LOOP
+
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 #define PWM_FREQ 1000U /* Hz */
@@ -37,7 +39,8 @@
 #define CYCLE_TIME 0.05f
 #define S_2_MS 1000
 
-#define FILT_ALPHA 0.4f
+#define VBATT_FILT_ALPHA       0.1f
+#define WHEEL_SPEED_FILT_ALPHA 0.4f
 
 /* Motor objects */
 static DC_Motor L_Motor;
@@ -121,7 +124,7 @@ void Motor_Controls_Task(void *pvParameters)
       Filter_Wheel_Speeds();
 
       /* Determine the maximum actuation voltage based on the current battery voltage */
-      MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
+      MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
       MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
 
       if (!L_Motor.stopped && !R_Motor.stopped)
@@ -192,8 +195,8 @@ void Motor_Controls_Task(void *pvParameters)
 
 static inline void Filter_Wheel_Speeds(void)
 {
-   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r, MC_Stream_Data.filt_speeds.r, FILT_ALPHA);
-   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l, MC_Stream_Data.filt_speeds.l, FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r, MC_Stream_Data.filt_speeds.r, WHEEL_SPEED_FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l, MC_Stream_Data.filt_speeds.l, WHEEL_SPEED_FILT_ALPHA);
 }
 
 static inline void Convert_Speeds_2_Velocities(void)

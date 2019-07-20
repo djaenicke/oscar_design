@@ -21,7 +21,7 @@ typedef struct {
    float dist;
 } Detection_T;
 
-static bool Obj_Det_Enabled = true;
+static bool Obj_Det_Enabled = false;
 static Servo Sensor_Servo;
 static UltrasonicSensor USS_Sensor;
 static Detection_T * Detections_Ptr;
