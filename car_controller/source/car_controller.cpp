@@ -32,7 +32,6 @@
  * @file    car_controller.cpp
  * @brief   Application entry point.
  */
-#include <data_logger.h>
 #include <stdio.h>
 
 /* SDK includes */
@@ -51,6 +50,8 @@
 #include "timers.h"
 
 /* Application */
+#include "data_logger.h"
+#include "inertial_states.h"
 #include "car_controller.h"
 #include "io_abstraction.h"
 #include "motor_controls.h"
@@ -61,7 +62,6 @@
 #include "interrupt_prios.h"
 #include "logging_streams.h"
 #include "object_detection.h"
-#include "imu.h"
 
 /*******************************************************************************
  * Definitions
@@ -119,7 +119,7 @@ int main(void)
 void Init_App(void)
 {
    Init_Battery_Monitor();
-   Init_IMU();
+   Init_Inertial_Sensors();
    Init_Wheel_Speed_Sensors();
    Init_Motor_Controls();
    Init_Object_Detection();

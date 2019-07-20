@@ -1,18 +1,17 @@
 /*
- * imu.cpp
+ * FXOS8700CQ.cpp
  *
- *  Created on: Jul 7, 2019
+ *  Created on: Jul 19, 2019
  *      Author: Devin
  */
 
-#include "imu.h"
+#include "FXOS8700CQ.h"
 #include "fsl_i2c.h"
 #include "fsl_fxos.h"
 #include "fsl_port.h"
 #include "fsl_gpio.h"
 #include "fsl_debug_console.h"
 #include "clock_config.h"
-#include "mpu6050.h"
 
 #define ACCEL_I2C_CLOCK_FREQ  CLOCK_GetFreq(I2C0_CLK_SRC)
 #define I2C_RELEASE_BUS_COUNT 100U
@@ -23,37 +22,19 @@
 #define I2C_RELEASE_SCL_GPIO  GPIOE
 #define I2C_RELEASE_SCL_PIN   24U
 
-static MPU6050 My_MPU6050;
-
 static fxos_handle_t FXOS_Handle = {0};
 static fxos_config_t FXOS_Cfg    = {0};
 static const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
 
-static Accel_Data_T MPU6050_Accel_Data = {0};
-static Gyro_Data_T  MPU6050_Gyro_Data  = {0};
-
-static inline void Init_Onboard_Sensor(void);
 static inline void I2C_Release_Bus(void);
 static void I2C_Release_Bus_Delay(void);
 static inline void I2C_Configure_Pins(void);
-status_t IMU_I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff);
-status_t IMU_I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
-                    uint8_t *rx_buff, uint8_t rx_buff_size);
 
-void Init_IMU(void)
-{
-   /* Initialize the external 6-axis MPU6050 */
-   My_MPU6050.Init(FTM0, I2C1);
+status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff);
+status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
+                           uint8_t *rx_buff, uint8_t rx_buff_size);
 
-   /* Initialize the 6-axis on board sensor */
-   Init_Onboard_Sensor();
-
-   /* Get readings from MPU6050 sensor */
-   My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
-   My_MPU6050.Read_Gyro_Data(&MPU6050_Gyro_Data);
-}
-
-static inline void Init_Onboard_Sensor(void)
+void FXOS8700CQ::Init(void)
 {
    i2c_master_config_t i2c_cfg = {0};
    uint8_t array_addr_size     = 0;
@@ -64,8 +45,8 @@ static inline void Init_Onboard_Sensor(void)
    I2C_MasterGetDefaultConfig(&i2c_cfg);
    I2C_MasterInit(I2C0, &i2c_cfg, ACCEL_I2C_CLOCK_FREQ);
 
-   FXOS_Cfg.I2C_SendFunc    = IMU_I2C_Tx;
-   FXOS_Cfg.I2C_ReceiveFunc = IMU_I2C_Rx;
+   FXOS_Cfg.I2C_SendFunc    = I2C_Tx;
+   FXOS_Cfg.I2C_ReceiveFunc = I2C_Rx;
 
    array_addr_size = sizeof(FXOS_Dev_Addr) / sizeof(FXOS_Dev_Addr[0]);
    for (uint8_t i = 0; i < array_addr_size; i++)
@@ -80,7 +61,7 @@ static inline void Init_Onboard_Sensor(void)
 
    if (result != kStatus_Success)
    {
-      PRINTF("\r\nIMU initialize failed!\r\n");
+      PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
    }
 }
 
@@ -170,7 +151,7 @@ static inline void I2C_Configure_Pins(void)
    PORT_SetPinConfig(PORTE, 25, &porte25_pin32_config); /* PORTE25 (pin 32) is configured as I2C0_SDA */
 }
 
-status_t IMU_I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff)
+status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff)
 {
     uint8_t data = (uint8_t)tx_buff;
     i2c_master_transfer_t masterXfer;
@@ -187,7 +168,7 @@ status_t IMU_I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_siz
     return I2C_MasterTransferBlocking(I2C0, &masterXfer);
 }
 
-status_t IMU_I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
+status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
                     uint8_t *rx_buff, uint8_t rx_buff_size)
 {
    i2c_master_transfer_t master_xfer;
