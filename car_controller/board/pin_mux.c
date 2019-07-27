@@ -59,83 +59,10 @@ void BOARD_InitBootPins(void)
    CLOCK_EnableClock(kCLOCK_PortD);
    CLOCK_EnableClock(kCLOCK_PortE);
 
-
    for (i=0; i<NUM_IO; i++)
    {
-       PORT_SetPinMux(Pin_Cfgs[i].pbase, Pin_Cfgs[i].pin, Pin_Cfgs[i].mux);
+      PORT_SetPinConfig(Pin_Cfgs[i].pbase, Pin_Cfgs[i].pin, &Pin_Cfgs[i].pin_cfg);
    }
-
-   /* SDHC pin configurations */
-   const port_pin_config_t porte0_pin1_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_D1 */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 0, &porte0_pin1_config);   /* PORTE0 (pin 1) is configured as SDHC0_D1 */
-   const port_pin_config_t porte1_pin2_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_D0 */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 1, &porte1_pin2_config);   /* PORTE1 (pin 2) is configured as SDHC0_D0 */
-   const port_pin_config_t porte2_pin3_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_DCLK */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 2, &porte2_pin3_config);   /* PORTE2 (pin 3) is configured as SDHC0_DCLK */
-   const port_pin_config_t porte3_pin4_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_CMD */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 3, &porte3_pin4_config);   /* PORTE3 (pin 4) is configured as SDHC0_CMD */
-   const port_pin_config_t porte4_pin5_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_D3 */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 4, &porte4_pin5_config);   /* PORTE4 (pin 5) is configured as SDHC0_D3 */
-   const port_pin_config_t porte5_pin6_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_HighDriveStrength,                                 /* High drive strength is configured */
-     kPORT_MuxAlt4,                                           /* Pin is configured as SDHC0_D2 */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 5, &porte5_pin6_config);   /* PORTE5 (pin 6) is configured as SDHC0_D2 */
-   const port_pin_config_t porte6_pin7_config = {
-     kPORT_PullDown,                                          /* Internal pull-down resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainDisable,                                  /* Open drain is disabled */
-     kPORT_LowDriveStrength,                                  /* Low drive strength is configured */
-     kPORT_MuxAsGpio,                                         /* Pin is configured as PTE6 */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 6, &porte6_pin7_config);   /* PORTE6 (pin 7) is configured as PTE6 */
 
    CLOCK_EnableClock(kCLOCK_Uart0);
    NVIC_SetPriority(UART0_RX_TX_IRQn, UART0_INT_PRIO);

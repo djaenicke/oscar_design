@@ -54,7 +54,7 @@ void BOARD_InitBootPeripherals(void)
 
    for (i=0; i<NUM_IO; i++)
    {
-      if (kPORT_MuxAsGpio == Pin_Cfgs[i].mux)
+      if (kPORT_MuxAsGpio == Pin_Cfgs[i].pin_cfg.mux)
       {
          pin_config.pinDirection = Pin_Cfgs[i].dir;
          pin_config.outputLogic = Pin_Cfgs[i].init_state;
@@ -62,3 +62,4 @@ void BOARD_InitBootPeripherals(void)
       }
    }
 }
+

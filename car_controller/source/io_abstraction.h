@@ -19,7 +19,7 @@ typedef struct
     PORT_Type *pbase;
     GPIO_Type *gbase;
     uint32_t   pin;
-    port_mux_t mux;
+    port_pin_config_t pin_cfg;
     gpio_pin_direction_t dir;
     GPIO_State_T init_state;
 } Pin_Cfg_T;
@@ -43,6 +43,14 @@ typedef enum
     USS_ECHO,
     MPU6050_SCL,
     MPU6050_SDA,
+    SDHC0_D1,
+    SDHC0_D0,
+    SDHC0_DCLK,
+    SDHC0_CMD,
+    SDHC0_D3,
+    SDHC0_D2,
+    SDHC0_GPIO,
+    R_SPEED_SENSOR_HE,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 
