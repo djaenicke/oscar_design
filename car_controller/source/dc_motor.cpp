@@ -31,9 +31,9 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
 {
    switch (new_dir)
    {
-      case REVERSE:
+      case FORWARD:
          stopped = false;
-         direction = REVERSE;
+         direction = FORWARD;
          switch (loc)
          {
             case LEFT_SIDE:
@@ -48,9 +48,9 @@ void DC_Motor::Set_Direction(Direction_T new_dir)
                assert(false);
          }
          break;
-      case FORWARD:
+      case REVERSE:
          stopped = false;
-         direction = FORWARD;
+         direction = REVERSE;
          switch (loc)
          {
             case LEFT_SIDE:
