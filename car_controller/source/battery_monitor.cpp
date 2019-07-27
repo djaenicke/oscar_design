@@ -9,7 +9,7 @@
 #include "fsl_adc16.h"
 
 #define ADC_MEAS_CHANNEL 12U
-#define VOLTS_PER_COUNT  (3.3f/4096)
+#define VOLTS_PER_COUNT  (3.3f/4095)
 #define R1               (4.65f)
 #define R2               (2.161f)
 #define SCALING          ((R1+R2)/R2)

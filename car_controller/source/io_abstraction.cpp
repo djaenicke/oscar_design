@@ -60,7 +60,7 @@
    kPORT_PassiveFilterDisable, \
    kPORT_OpenDrainDisable, \
    kPORT_LowDriveStrength, \
-   kPORT_MuxAlt3, \
+   kPORT_MuxAlt4, \
    kPORT_UnlockRegister \
 } \
 
@@ -71,7 +71,7 @@
    kPORT_PassiveFilterDisable, \
    kPORT_OpenDrainDisable, \
    kPORT_LowDriveStrength, \
-   kPORT_MuxAlt3, \
+   kPORT_PinDisabledOrAnalog, \
    kPORT_UnlockRegister \
 } \
 
