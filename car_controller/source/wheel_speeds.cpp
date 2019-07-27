@@ -25,6 +25,8 @@
 #define MAX_MEASUREMENTS 5
 #define MIN_PERIOD 512
 
+#define HE_PULSES_PER_REV (192)
+
 typedef struct {
    uint8_t  meas_type;
    uint8_t  num_meas;
@@ -33,9 +35,11 @@ typedef struct {
 } Period_T;
 
 static volatile Period_T Encoder_Period[NUM_WHEELS] = {0};
+static volatile uint16_t HE_Sensor_Pulses[NUM_WHEELS] = {0, 0};
 
 static inline void  Measure_Period(Wheel_T pos);
 static inline float Period_2_Speed(Wheel_T pos);
+static inline float Pulses_2_Speed(Wheel_T pos, float dt);
 
 void Init_Wheel_Speed_Sensors(void)
 {
@@ -54,6 +58,9 @@ void Init_Wheel_Speed_Sensors(void)
 
    /* Enable interrupts to capture the optical encoder pulses */
    p_int_cfg = kPORT_InterruptRisingEdge;
+   PORT_SetPinInterruptConfig(Pin_Cfgs[R_SPEED_SENSOR_HE].pbase, Pin_Cfgs[R_SPEED_SENSOR_HE].pin, p_int_cfg);
+   PORT_SetPinInterruptConfig(Pin_Cfgs[L_SPEED_SENSOR_HE].pbase, Pin_Cfgs[L_SPEED_SENSOR_HE].pin, p_int_cfg);
+
    PORT_SetPinInterruptConfig(Pin_Cfgs[R_SPEED_SENSOR].pbase, Pin_Cfgs[R_SPEED_SENSOR].pin, p_int_cfg);
    PORT_SetPinInterruptConfig(Pin_Cfgs[L_SPEED_SENSOR].pbase, Pin_Cfgs[L_SPEED_SENSOR].pin, p_int_cfg);
 
@@ -69,10 +76,42 @@ void Init_Wheel_Speed_Sensors(void)
 
 void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
 {
+   static uint16_t last_cnt = 0;
+   uint16_t cnt, delta_cnt;
+   float dt;
+
+   cnt = (uint16_t) FTM1->CNT;
+
+   if (last_cnt)
+   {
+      if (cnt > last_cnt)
+      {
+         /* No rollover */
+         delta_cnt = cnt - last_cnt;
+      }
+      else
+      {
+         /* Rollover */
+         delta_cnt = (UINT16_MAX - last_cnt) + cnt;
+      }
+
+      dt = delta_cnt * CLK_PERIOD;
+   }
+   else
+   {
+      /* First time being called assume 50ms */
+      dt = 0.05;
+   }
+
+   last_cnt = cnt;
+
    if (NULL != speeds)
    {
       speeds->r = Period_2_Speed(R);
       speeds->l = Period_2_Speed(L);
+
+      speeds->r_he = Pulses_2_Speed(R, dt);
+      speeds->l_he = Pulses_2_Speed(L, dt);
    }
    else
    {
@@ -88,12 +127,20 @@ void Zero_Wheel_Speed(Wheel_T pos)
    {
       Encoder_Period[pos].period_cnt[i] = (uint16_t) 0;
    }
+
+   HE_Sensor_Pulses[pos] = 0;
 }
 
 extern "C"
 {
 void PORTC_IRQHandler(void)
 {
+   if (ISR_Flag_Is_Set(L_SPEED_SENSOR_HE))
+   {
+      HE_Sensor_Pulses[L]++;
+      Clear_ISR_Flag(L_SPEED_SENSOR_HE);
+   }
+
    if (ISR_Flag_Is_Set(L_SPEED_SENSOR))
    {
       Measure_Period(L);
@@ -103,6 +150,12 @@ void PORTC_IRQHandler(void)
 
 void PORTB_IRQHandler(void)
 {
+   if (ISR_Flag_Is_Set(R_SPEED_SENSOR_HE))
+   {
+      HE_Sensor_Pulses[R]++;
+      Clear_ISR_Flag(R_SPEED_SENSOR_HE);
+   }
+
    if (ISR_Flag_Is_Set(R_SPEED_SENSOR))
    {
       Measure_Period(R);
@@ -151,6 +204,20 @@ static inline float Period_2_Speed(Wheel_T pos)
       temp = RAD_PER_REV/(PULSES_PER_REV*period*CLK_PERIOD);
       Encoder_Period[pos].num_meas = 0;
    }
+
+   return temp;
+}
+
+static inline float Pulses_2_Speed(Wheel_T pos, float dt)
+{
+   float temp = 0.0f;
+
+   if (HE_Sensor_Pulses[pos])
+   {
+      temp = (((((float)HE_Sensor_Pulses[pos]/HE_PULSES_PER_REV)*RAD_PER_REV)/dt));
+   }
+
+   HE_Sensor_Pulses[pos] = 0;
 
    return temp;
 }

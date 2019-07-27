@@ -27,7 +27,8 @@
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
 #define PWM_FREQ 1000U /* Hz */
 
-#define Ke 0.22f
+#define R_Ke 0.226f
+#define L_Ke 0.192f
 #define DRIVER_VDROP 2.0f
 
 //#define OPEN_LOOP
@@ -39,7 +40,7 @@
 #define CYCLE_TIME 0.05f
 #define S_2_MS 1000
 
-#define VBATT_FILT_ALPHA       0.1f
+#define VBATT_FILT_ALPHA       0.4f
 #define WHEEL_SPEED_FILT_ALPHA 0.4f
 
 /* Motor objects */
@@ -130,12 +131,12 @@ void Motor_Controls_Task(void *pvParameters)
       if (!L_Motor.stopped && !R_Motor.stopped)
       {
          /* Compute the voltage set points */
-         v_r_sp = MC_Stream_Data.r_speed_sp * Ke;
-         v_l_sp = MC_Stream_Data.l_speed_sp * Ke;
+         v_r_sp = MC_Stream_Data.r_speed_sp * R_Ke;
+         v_l_sp = MC_Stream_Data.l_speed_sp * L_Ke;
 #ifndef OPEN_LOOP
          /* Compute the voltage feedback */
-         v_r_fb = MC_Stream_Data.filt_speeds.r * Ke;
-         v_l_fb = MC_Stream_Data.filt_speeds.l * Ke;
+         v_r_fb = MC_Stream_Data.filt_speeds.r_he * R_Ke;
+         v_l_fb = MC_Stream_Data.filt_speeds.l_he * L_Ke;
 
          /* Run the PID controllers */
          MC_Stream_Data.u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
@@ -195,8 +196,21 @@ void Motor_Controls_Task(void *pvParameters)
 
 static inline void Filter_Wheel_Speeds(void)
 {
-   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r, MC_Stream_Data.filt_speeds.r, WHEEL_SPEED_FILT_ALPHA);
-   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l, MC_Stream_Data.filt_speeds.l, WHEEL_SPEED_FILT_ALPHA);
+   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r,
+                                            MC_Stream_Data.filt_speeds.r,
+                                            WHEEL_SPEED_FILT_ALPHA);
+
+   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l,
+                                            MC_Stream_Data.filt_speeds.l,
+                                            WHEEL_SPEED_FILT_ALPHA);
+
+   MC_Stream_Data.filt_speeds.r_he = LP_Filter(MC_Stream_Data.raw_speeds.r_he,
+                                               MC_Stream_Data.filt_speeds.r_he,
+                                               WHEEL_SPEED_FILT_ALPHA);
+
+   MC_Stream_Data.filt_speeds.l_he = LP_Filter(MC_Stream_Data.raw_speeds.l_he,
+                                               MC_Stream_Data.filt_speeds.l_he,
+                                               WHEEL_SPEED_FILT_ALPHA);
 }
 
 static inline void Convert_Speeds_2_Velocities(void)

@@ -88,7 +88,7 @@
 
 #define SDHC_PIN_CFG_2 \
 { \
-   kPORT_PullUp, \
+   kPORT_PullDown, \
    kPORT_FastSlewRate, \
    kPORT_PassiveFilterDisable, \
    kPORT_OpenDrainDisable, \
@@ -123,7 +123,8 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
    {PORTE, GPIOE,  4, SDHC_PIN_CFG_1,         kGPIO_DigitalOutput, NA},   /* SDHC0_D3 */
    {PORTE, GPIOE,  5, SDHC_PIN_CFG_1,         kGPIO_DigitalOutput, NA},   /* SDHC0_D2 */
    {PORTE, GPIOE,  6, SDHC_PIN_CFG_2,         kGPIO_DigitalOutput, NA},   /* SDHC0_GPIO */
-   {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA}    /* R_SPEED_SENSOR_HE (Hall-effect) */
+   {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR_HE (Hall-effect) */
+   {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA}    /* L_SPEED_SENSOR_HE (Hall-effect) */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)

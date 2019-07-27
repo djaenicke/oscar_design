@@ -51,6 +51,7 @@ typedef enum
     SDHC0_D2,
     SDHC0_GPIO,
     R_SPEED_SENSOR_HE,
+    L_SPEED_SENSOR_HE,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

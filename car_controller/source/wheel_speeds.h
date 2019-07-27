@@ -19,6 +19,8 @@ typedef struct
 {
    float r;
    float l;
+   float r_he;
+   float l_he;
 } Wheel_Speeds_T;
 
 extern void Init_Wheel_Speed_Sensors(void);
