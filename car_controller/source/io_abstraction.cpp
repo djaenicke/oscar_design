@@ -124,7 +124,9 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
    {PORTE, GPIOE,  5, SDHC_PIN_CFG_1,         kGPIO_DigitalOutput, NA},   /* SDHC0_D2 */
    {PORTE, GPIOE,  6, SDHC_PIN_CFG_2,         kGPIO_DigitalOutput, NA},   /* SDHC0_GPIO */
    {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR_HE (Hall-effect) */
-   {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA}    /* L_SPEED_SENSOR_HE (Hall-effect) */
+   {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR_HE (Hall-effect) */
+   {PORTB, GPIOB, 16, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* UART0_RX */
+   {PORTB, GPIOB, 17, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalOutput, NA}    /* UART0_TX */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)

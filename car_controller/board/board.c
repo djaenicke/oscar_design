@@ -37,10 +37,17 @@
 
 #include <stdint.h>
 #include "board.h"
+#include "fsl_debug_console.h"
 
 /**
  * @brief Set up and initialize all required blocks and functions related to the board hardware.
  */
-void BOARD_InitDebugConsole(void) {
-	/* The user initialization should be placed here */
+void BOARD_InitDebugConsole(void)
+{
+   status_t status;
+
+   status = DbgConsole_Init(0, 115200, kSerialPort_Uart, CLOCK_GetFreq(UART0_CLK_SRC));
+
+   assert(kStatus_Success==status);
 }
+
