@@ -9,7 +9,7 @@
 #define MOTOR_CONTROLS_H_
 
 extern void Init_Motor_Controls(void);
-extern void Motor_Controls_Task(void *pvParameters);
+extern void Run_Motor_Controls(void);
 extern void Update_Wheel_Speed_Setpoints(float r_sp, float l_sp);
 extern void Stop(void);
 

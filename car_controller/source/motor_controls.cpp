@@ -12,6 +12,7 @@
 #include "task.h"
 
 #include "dc_motor.h"
+#include "behaviors.h"
 #include "fsl_debug_console.h"
 #include "pid.h"
 #include "clock_config.h"
@@ -42,9 +43,6 @@
 #define R_Kd 0.0034531f
 
 #define TOLERANCE 0.0f /* rad/s - TODO: update*/
-
-#define CYCLE_TIME 0.025f
-#define S_2_MS 1000
 
 #define VBATT_FILT_ALPHA       0.4f
 #define WHEEL_SPEED_FILT_ALPHA 0.4f
@@ -110,7 +108,7 @@ void Init_Motor_Controls(void)
    MC_Stream_Data.end_pattern = END_PATTERN;
 }
 
-void Motor_Controls_Task(void *pvParameters)
+void Run_Motor_Controls(void)
 {
    size_t bytes_sent = 0;
    float v_r_sp, v_l_sp;   /* Set point */
@@ -120,101 +118,97 @@ void Motor_Controls_Task(void *pvParameters)
 #else
    int8_t sign;
 #endif
-   while(1)
-   {
-      MC_Stream_Data.cnt++;
 
-      if (L_Motor.stopped && R_Motor.stopped)
+   MC_Stream_Data.cnt++;
+
+   if (L_Motor.stopped && R_Motor.stopped)
+   {
+      Zero_Wheel_Speed(R_HE);
+      Zero_Wheel_Speed(R_E);
+      Zero_Wheel_Speed(L_HE);
+      Zero_Wheel_Speed(L_E);
+   }
+
+   Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
+   Convert_Speeds_2_Velocities();
+   Filter_Wheel_Speeds();
+
+#ifdef DEBUG
+   /* Used for tuning the PID controllers */
+   uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_speed_sp*1000);
+   uint16_t r_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.r_he*1000);
+   uint16_t l_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.l_he*1000);
+
+   PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
+#endif
+
+   /* Determine the maximum actuation voltage based on the current battery voltage */
+   MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
+   MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
+
+   if (!L_Motor.stopped && !R_Motor.stopped)
+   {
+      /* Compute the voltage set points */
+      v_r_sp = MC_Stream_Data.r_speed_sp * R_Ke;
+      v_l_sp = MC_Stream_Data.l_speed_sp * L_Ke;
+#ifndef OPEN_LOOP
+      /* Compute the voltage feedback */
+      v_r_fb = MC_Stream_Data.filt_speeds.r_he * R_Ke;
+      v_l_fb = MC_Stream_Data.filt_speeds.l_he * L_Ke;
+
+      /* Run the PID controllers */
+      MC_Stream_Data.u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
+      MC_Stream_Data.u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
+
+      /* Get debug information for data logging */
+      MC_Stream_Data.r_error    = R_PID.last_e;
+      MC_Stream_Data.l_error    = L_PID.last_e;
+      MC_Stream_Data.r_integral = R_PID.integral;
+      MC_Stream_Data.l_integral = L_PID.integral;
+#else
+      /* Saturate the set points to be within the actuator voltage range */
+      sign = signbit(MC_Stream_Data.u_r) ? -1 : 1;
+      MC_Stream_Data.u_r = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
+      MC_Stream_Data.u_r = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
+
+      sign = signbit(MC_Stream_Data.u_l) ? -1 : 1;
+      MC_Stream_Data.u_l = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign *Min_Voltage;
+      MC_Stream_Data.u_l = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
+#endif
+      /* Convert the actuation voltages to duty cycles */
+      MC_Stream_Data.u_r_dc = (uint8_t)(fabs(MC_Stream_Data.u_r) * (100/MC_Stream_Data.max_vbatt));
+      MC_Stream_Data.u_l_dc = (uint8_t)(fabs(MC_Stream_Data.u_l) * (100/MC_Stream_Data.max_vbatt));
+
+      /* Determine direction */
+      r_dir = signbit(MC_Stream_Data.u_r) ? REVERSE : FORWARD;
+      l_dir = signbit(MC_Stream_Data.u_l) ? REVERSE : FORWARD;
+
+      R_Motor.Set_Direction(r_dir);
+      L_Motor.Set_Direction(l_dir);
+
+      /* Zero the wheel speeds on a direction change */
+      if (r_dir != R_Motor.Get_Direction())
       {
          Zero_Wheel_Speed(R_HE);
          Zero_Wheel_Speed(R_E);
+      }
+      if (l_dir != L_Motor.Get_Direction())
+      {
          Zero_Wheel_Speed(L_HE);
          Zero_Wheel_Speed(L_E);
       }
-
-      Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
-      Convert_Speeds_2_Velocities();
-      Filter_Wheel_Speeds();
-
-#ifdef DEBUG
-      /* Used for tuning the PID controllers */
-      uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_speed_sp*1000);
-      uint16_t r_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.r_he*1000);
-      uint16_t l_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.l_he*1000);
-
-      PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
-#endif
-
-      /* Determine the maximum actuation voltage based on the current battery voltage */
-      MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
-      MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
-
-      if (!L_Motor.stopped && !R_Motor.stopped)
-      {
-         /* Compute the voltage set points */
-         v_r_sp = MC_Stream_Data.r_speed_sp * R_Ke;
-         v_l_sp = MC_Stream_Data.l_speed_sp * L_Ke;
-#ifndef OPEN_LOOP
-         /* Compute the voltage feedback */
-         v_r_fb = MC_Stream_Data.filt_speeds.r_he * R_Ke;
-         v_l_fb = MC_Stream_Data.filt_speeds.l_he * L_Ke;
-
-         /* Run the PID controllers */
-         MC_Stream_Data.u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
-         MC_Stream_Data.u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
-
-         /* Get debug information for data logging */
-         MC_Stream_Data.r_error    = R_PID.last_e;
-         MC_Stream_Data.l_error    = L_PID.last_e;
-         MC_Stream_Data.r_integral = R_PID.integral;
-         MC_Stream_Data.l_integral = L_PID.integral;
-#else
-         /* Saturate the set points to be within the actuator voltage range */
-         sign = signbit(MC_Stream_Data.u_r) ? -1 : 1;
-         MC_Stream_Data.u_r = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
-         MC_Stream_Data.u_r = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
-
-         sign = signbit(MC_Stream_Data.u_l) ? -1 : 1;
-         MC_Stream_Data.u_l = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign *Min_Voltage;
-         MC_Stream_Data.u_l = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
-#endif
-         /* Convert the actuation voltages to duty cycles */
-         MC_Stream_Data.u_r_dc = (uint8_t)(fabs(MC_Stream_Data.u_r) * (100/MC_Stream_Data.max_vbatt));
-         MC_Stream_Data.u_l_dc = (uint8_t)(fabs(MC_Stream_Data.u_l) * (100/MC_Stream_Data.max_vbatt));
-
-         /* Determine direction */
-         r_dir = signbit(MC_Stream_Data.u_r) ? REVERSE : FORWARD;
-         l_dir = signbit(MC_Stream_Data.u_l) ? REVERSE : FORWARD;
-
-         R_Motor.Set_Direction(r_dir);
-         L_Motor.Set_Direction(l_dir);
-
-         /* Zero the wheel speeds on a direction change */
-         if (r_dir != R_Motor.Get_Direction())
-         {
-            Zero_Wheel_Speed(R_HE);
-            Zero_Wheel_Speed(R_E);
-         }
-         if (l_dir != L_Motor.Get_Direction())
-         {
-            Zero_Wheel_Speed(L_HE);
-            Zero_Wheel_Speed(L_E);
-         }
-      }
-      else
-      {
-         MC_Stream_Data.u_r_dc = 0;
-         MC_Stream_Data.u_l_dc = 0;
-      }
-
-      R_Motor.Set_DC(MC_Stream_Data.u_r_dc);
-      L_Motor.Set_DC(MC_Stream_Data.u_l_dc);
-
-      bytes_sent = xStreamBufferSend(MC_Stream.handle, (void *) &MC_Stream_Data, sizeof(MC_Stream_Data), 0);
-      assert(bytes_sent == sizeof(MC_Stream_Data));
-
-      vTaskDelay(pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));
    }
+   else
+   {
+      MC_Stream_Data.u_r_dc = 0;
+      MC_Stream_Data.u_l_dc = 0;
+   }
+
+   R_Motor.Set_DC(MC_Stream_Data.u_r_dc);
+   L_Motor.Set_DC(MC_Stream_Data.u_l_dc);
+
+   bytes_sent = xStreamBufferSend(MC_Stream.handle, (void *) &MC_Stream_Data, sizeof(MC_Stream_Data), 0);
+   assert(bytes_sent == sizeof(MC_Stream_Data));
 }
 
 static inline void Filter_Wheel_Speeds(void)

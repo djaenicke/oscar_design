@@ -12,7 +12,7 @@
 #include "ultrasonic_sensor.h"
 
 extern void Init_Object_Detection(void);
-extern void Object_Detection_Task(void *pvParameters);
+extern void Run_Object_Detection(void);
 extern void Toggle_Obj_Det_Enable(void);
 
 #endif /* OBJECT_DETECTION_H_ */

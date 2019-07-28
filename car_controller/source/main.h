@@ -5,8 +5,8 @@
  *      Author: Devin
  */
 
-#ifndef CAR_CONTROLLER_H_
-#define CAR_CONTROLLER_H_
+#ifndef MAIN_H_
+#define MAIN_H_
 
 
-#endif /* CAR_CONTROLLER_H_ */
+#endif /* MAIN_H_ */

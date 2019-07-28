@@ -5,16 +5,13 @@
  *      Author: Devin
  */
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "object_detection.h"
 
 //#define FORWARD_ONLY
 
 #define ROBOT_FRAME_TRANSLATION (90)
 #define SENSOR_FORWARD_OFFSET   (0)  /* Degrees */
-#define ROTATION_STEP           (20) /* Degrees */
+#define ROTATION_STEP           (5) /* Degrees */
 
 typedef struct {
    float angle;
@@ -56,58 +53,50 @@ void Init_Object_Detection(void)
    USS_Sensor.Init(FTM2, USS_TRIGGER, USS_ECHO);
 }
 
-void Object_Detection_Task(void *pvParameters)
+void Run_Object_Detection(void)
 {
    static uint8_t det_num = 0;
    static bool first_loop = true;
    float det_dist = 0.0f;
    float cur_angle = 0.0f;
 
-   while(1)
+   if (Obj_Det_Enabled)
    {
-      if (Obj_Det_Enabled)
+      cur_angle = Sensor_Servo.Get_Angle();
+
+      /* See if previous loop detected an object */
+      if (!first_loop)
       {
-         cur_angle = Sensor_Servo.Get_Angle();
+         det_dist = USS_Sensor.Get_Obj_Dist();
 
-         /* See if previous loop detected an object */
-         if (!first_loop)
+         Detections_Ptr[det_num].angle = cur_angle - ROBOT_FRAME_TRANSLATION;
+         Detections_Ptr[det_num].dist  = det_dist;
+         det_num++;
+
+         if (det_num == Max_Num_Dets)
          {
-            det_dist = USS_Sensor.Get_Obj_Dist();
-
-            Detections_Ptr[det_num].angle = cur_angle - ROBOT_FRAME_TRANSLATION;
-            Detections_Ptr[det_num].dist  = det_dist;
-            det_num++;
-
-            if (det_num == Max_Num_Dets)
-            {
-               det_num = 0;
-            }
+            det_num = 0;
          }
-         else
-         {
-            first_loop = false;
-         }
+      }
+      else
+      {
+         first_loop = false;
+      }
 
 #ifndef FORWARD_ONLY
-         if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
-         {
-            Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
-         }
-         else
-         {
-            cur_angle = Sensor_Servo.Get_Max_Angle();
-            Sensor_Servo.Set_Angle(cur_angle);
-         }
+      if ((cur_angle - ROTATION_STEP) >= Sensor_Servo.Get_Min_Angle())
+      {
+         Sensor_Servo.Set_Angle(cur_angle - ROTATION_STEP);
+      }
+      else
+      {
+         cur_angle = Sensor_Servo.Get_Max_Angle();
+         Sensor_Servo.Set_Angle(cur_angle);
+      }
 #endif
 
-         /* Scan for object here */
-         USS_Sensor.Trigger();
-      }
-      /* Task cycle time reqs:
-       *   - cycle time > 2 * (max range / speed of sound)
-       *   - cycle time > 1.67 (ms) * ROTATION_STEP
-       */
-      vTaskDelay(pdMS_TO_TICKS(150));
+      /* Scan for object here */
+      USS_Sensor.Trigger();
    }
 }
 
