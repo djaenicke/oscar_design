@@ -70,7 +70,7 @@ void Bluetooth_Cmd_Task(void *pvParameters)
          New_Cmd = false;
       }
 
-      vTaskDelay(pdMS_TO_TICKS(50));
+      vTaskDelay(pdMS_TO_TICKS(10));
    }
 }
 
