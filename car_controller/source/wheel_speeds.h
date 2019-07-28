@@ -10,10 +10,12 @@
 
 typedef enum
 {
-   R = 0,
-   L,
-   NUM_WHEELS
-} Wheel_T;
+   R_E = 0,
+   L_E,
+   R_HE,
+   L_HE,
+   NUM_WHEEL_SENSORS
+} Wheel_Sensor_T;
 
 typedef struct
 {
@@ -25,6 +27,6 @@ typedef struct
 
 extern void Init_Wheel_Speed_Sensors(void);
 extern void Get_Wheel_Speeds(Wheel_Speeds_T * speeds);
-extern void Zero_Wheel_Speed(Wheel_T pos);
+extern void Zero_Wheel_Speed(Wheel_Sensor_T sensor);
 
 #endif /* WHEEL_SPEEDS_H_ */
