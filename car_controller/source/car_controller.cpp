@@ -67,9 +67,9 @@
  * Definitions
  ******************************************************************************/
 #define SD_CARD_INIT_TASK_PRIO     (configMAX_PRIORITIES - 1U)
-#define MOTOR_CONTROLS_TASK_PRIO   (configMAX_PRIORITIES - 2U)
-#define OBJECT_DETECTION_TASK_PRIO (configMAX_PRIORITIES - 3U)
-#define MC_DATA_LOGGING_TASK_PRIO  (configMAX_PRIORITIES - 4U)
+#define MC_DATA_LOGGING_TASK_PRIO  (configMAX_PRIORITIES - 2U)
+#define MOTOR_CONTROLS_TASK_PRIO   (configMAX_PRIORITIES - 3U)
+#define OBJECT_DETECTION_TASK_PRIO (configMAX_PRIORITIES - 4U)
 #define BLUETOOTH_CMD_TASK_PRIO    (configMAX_PRIORITIES - 5U)
 
 typedef struct Task_Cfg_Tag

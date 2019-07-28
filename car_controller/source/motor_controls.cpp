@@ -32,9 +32,14 @@
 #define DRIVER_VDROP 2.0f
 
 //#define OPEN_LOOP
-#define Kp 0.2762472f
-#define Ki 5.5249447f
-#define Kd 0.0034531f
+#define L_Kp 0.3f
+#define L_Ki 2.2f
+#define L_Kd 0.05f
+
+#define R_Kp 0.2f
+#define R_Ki 3.5f
+#define R_Kd 0.0034531f
+
 #define TOLERANCE 0.0f /* rad/s - TODO: update*/
 
 #define CYCLE_TIME 0.05f
@@ -68,13 +73,17 @@ void Init_Motor_Controls(void)
    L_Motor.Set_Location(LEFT_SIDE);
    R_Motor.Set_Location(RIGHT_SIDE);
 
-   pid_cals.k_p = Kp;
-   pid_cals.k_i = Ki;
-   pid_cals.k_d = Kd;
    pid_cals.dt  = CYCLE_TIME;
    pid_cals.tol = TOLERANCE;
 
+   pid_cals.k_p = L_Kp;
+   pid_cals.k_i = L_Ki;
+   pid_cals.k_d = L_Kd;
    L_PID.Init(&pid_cals);
+
+   pid_cals.k_p = R_Kp;
+   pid_cals.k_i = R_Ki;
+   pid_cals.k_d = R_Kd;
    R_PID.Init(&pid_cals);
 
    /* Left Side */
@@ -116,8 +125,10 @@ void Motor_Controls_Task(void *pvParameters)
 
       if (L_Motor.stopped && R_Motor.stopped)
       {
-         Zero_Wheel_Speed(R);
-         Zero_Wheel_Speed(L);
+         Zero_Wheel_Speed(R_HE);
+         Zero_Wheel_Speed(R_E);
+         Zero_Wheel_Speed(L_HE);
+         Zero_Wheel_Speed(L_E);
       }
 
       Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
@@ -171,11 +182,13 @@ void Motor_Controls_Task(void *pvParameters)
          /* Zero the wheel speeds on a direction change */
          if (r_dir != R_Motor.Get_Direction())
          {
-            Zero_Wheel_Speed(R);
+            Zero_Wheel_Speed(R_HE);
+            Zero_Wheel_Speed(R_E);
          }
          if (l_dir != L_Motor.Get_Direction())
          {
-            Zero_Wheel_Speed(L);
+            Zero_Wheel_Speed(L_HE);
+            Zero_Wheel_Speed(L_E);
          }
       }
       else
