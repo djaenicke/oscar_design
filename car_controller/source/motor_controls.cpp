@@ -241,10 +241,12 @@ static inline void Convert_Speeds_2_Velocities(void)
    int8_t sign;
 
    sign = FORWARD == R_Motor.Get_Direction() ? 1 : -1;
-   MC_Stream_Data.raw_speeds.r = sign * MC_Stream_Data.raw_speeds.r;
+   MC_Stream_Data.raw_speeds.r    = sign * MC_Stream_Data.raw_speeds.r;
+   MC_Stream_Data.raw_speeds.r_he = sign * MC_Stream_Data.raw_speeds.r_he;
 
    sign = FORWARD == L_Motor.Get_Direction() ? 1 : -1;
-   MC_Stream_Data.raw_speeds.l = sign * MC_Stream_Data.raw_speeds.l;
+   MC_Stream_Data.raw_speeds.l    = sign * MC_Stream_Data.raw_speeds.l;
+   MC_Stream_Data.raw_speeds.l_he = sign * MC_Stream_Data.raw_speeds.l_he;
 }
 
 void Update_Wheel_Speed_Setpoints(float l_sp, float r_sp)
