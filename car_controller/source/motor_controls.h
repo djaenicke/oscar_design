@@ -12,7 +12,7 @@
 
 extern void Init_Motor_Controls(void);
 extern void Run_Motor_Controls(void);
-extern void Update_Wheel_Speed_Setpoints(float r_sp, float l_sp);
+extern void Update_Wheel_Angular_V_SP(float r_sp, float l_sp, bool reset_pid);
 extern bool Right_Motor_Stopped(void);
 extern bool Left_Motor_Stopped(void);
 extern void Stop(void);

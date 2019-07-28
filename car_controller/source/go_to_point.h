@@ -11,5 +11,6 @@
 #include <stdint.h>
 
 extern void Run_Go_To_Point_Controller(void);
+extern void Update_Destination(float x, float y, float robot_v);
 
 #endif /* GO_TO_POINT_H_ */

@@ -24,7 +24,7 @@ void Behaviors_Task(void *pvParameters)
       Update_Robot_States();
 
       Run_Object_Detection();
-      Run_Go_To_Point_Controller();
+      //Run_Go_To_Point_Controller();
       Run_Motor_Controls();
 
       vTaskDelay(pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));

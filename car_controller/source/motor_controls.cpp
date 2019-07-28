@@ -109,6 +109,7 @@ void Run_Motor_Controls(void)
 {
    size_t bytes_sent = 0;
    float v_r_sp, v_l_sp;   /* Set point */
+   float u_r, u_l; /* Actuation signals */
    Direction_T r_dir, l_dir;
 #ifndef OPEN_LOOP
    float v_r_fb, v_l_fb;   /* Feedback */
@@ -135,39 +136,33 @@ void Run_Motor_Controls(void)
    if (!L_Motor.stopped && !R_Motor.stopped)
    {
       /* Compute the voltage set points */
-      v_r_sp = MC_Stream_Data.r_speed_sp * R_Ke;
-      v_l_sp = MC_Stream_Data.l_speed_sp * L_Ke;
+      v_r_sp = MC_Stream_Data.r_ang_v_sp * R_Ke;
+      v_l_sp = MC_Stream_Data.l_ang_v_sp * L_Ke;
 #ifndef OPEN_LOOP
       /* Compute the voltage feedback */
       v_r_fb = MC_Stream_Data.wheel_ang_v.r_he * R_Ke;
       v_l_fb = MC_Stream_Data.wheel_ang_v.l_he * L_Ke;
 
       /* Run the PID controllers */
-      MC_Stream_Data.u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
-      MC_Stream_Data.u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
-
-      /* Get debug information for data logging */
-      MC_Stream_Data.r_error    = R_PID.last_e;
-      MC_Stream_Data.l_error    = L_PID.last_e;
-      MC_Stream_Data.r_integral = R_PID.integral;
-      MC_Stream_Data.l_integral = L_PID.integral;
+      u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
+      u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
 #else
       /* Saturate the set points to be within the actuator voltage range */
-      sign = signbit(MC_Stream_Data.u_r) ? -1 : 1;
+      sign = signbit(u_r) ? -1 : 1;
       MC_Stream_Data.u_r = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
       MC_Stream_Data.u_r = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
 
-      sign = signbit(MC_Stream_Data.u_l) ? -1 : 1;
+      sign = signbit(u_l) ? -1 : 1;
       MC_Stream_Data.u_l = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign *Min_Voltage;
       MC_Stream_Data.u_l = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
 #endif
       /* Convert the actuation voltages to duty cycles */
-      MC_Stream_Data.u_r_dc = (uint8_t)(fabs(MC_Stream_Data.u_r) * (100/MC_Stream_Data.max_vbatt));
-      MC_Stream_Data.u_l_dc = (uint8_t)(fabs(MC_Stream_Data.u_l) * (100/MC_Stream_Data.max_vbatt));
+      MC_Stream_Data.u_r_dc = (uint8_t)(fabs(u_r) * (100/MC_Stream_Data.max_vbatt));
+      MC_Stream_Data.u_l_dc = (uint8_t)(fabs(u_l) * (100/MC_Stream_Data.max_vbatt));
 
       /* Determine direction */
-      r_dir = signbit(MC_Stream_Data.u_r) ? REVERSE : FORWARD;
-      l_dir = signbit(MC_Stream_Data.u_l) ? REVERSE : FORWARD;
+      r_dir = signbit(u_r) ? REVERSE : FORWARD;
+      l_dir = signbit(u_l) ? REVERSE : FORWARD;
 
       R_Motor.Set_Direction(r_dir);
       L_Motor.Set_Direction(l_dir);
@@ -218,21 +213,24 @@ int8_t Left_Wheel_Speed_Sign(void)
 }
 
 
-void Update_Wheel_Speed_Setpoints(float l_sp, float r_sp)
+void Update_Wheel_Angular_V_SP(float l_sp, float r_sp, bool reset_pid)
 {
-   MC_Stream_Data.r_speed_sp = r_sp;
-   MC_Stream_Data.l_speed_sp = l_sp;
+   MC_Stream_Data.r_ang_v_sp = r_sp;
+   MC_Stream_Data.l_ang_v_sp = l_sp;
 
    R_Motor.stopped = false;
    L_Motor.stopped = false;
 
-   R_PID.Reset();
-   L_PID.Reset();
+   if (reset_pid)
+   {
+      R_PID.Reset();
+      L_PID.Reset();
+   }
 }
 
 void Stop(void)
 {
-   Update_Wheel_Speed_Setpoints(0.0f, 0.0f);
+   Update_Wheel_Angular_V_SP(0.0f, 0.0f, true);
    L_Motor.Stop();
    R_Motor.Stop();
 }
