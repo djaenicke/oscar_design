@@ -13,6 +13,7 @@
 
 #include "dc_motor.h"
 #include "behaviors.h"
+#include "inertial_states.h"
 #include "fsl_debug_console.h"
 #include "pid.h"
 #include "clock_config.h"
@@ -23,7 +24,7 @@
 #include "assert.h"
 
 //#define OPEN_LOOP
-//#define DEBUG
+//#define TUNE
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
@@ -45,7 +46,6 @@
 #define TOLERANCE 0.0f /* rad/s - TODO: update*/
 
 #define VBATT_FILT_ALPHA       0.4f
-#define WHEEL_SPEED_FILT_ALPHA 0.4f
 
 /* Motor objects */
 static DC_Motor L_Motor;
@@ -58,9 +58,6 @@ static PID R_PID;
 static const float Min_Voltage = 3.0; /* Motors require at least 3.0V */
 
 static Motor_Controls_Stream_T MC_Stream_Data;
-
-static inline void Filter_Wheel_Speeds(void);
-static inline void Convert_Speeds_2_Velocities(void);
 
 void Init_Motor_Controls(void)
 {
@@ -120,24 +117,13 @@ void Run_Motor_Controls(void)
 #endif
 
    MC_Stream_Data.cnt++;
+   Get_Wheel_Ang_Velocities(&MC_Stream_Data.wheel_ang_v);
 
-   if (L_Motor.stopped && R_Motor.stopped)
-   {
-      Zero_Wheel_Speed(R_HE);
-      Zero_Wheel_Speed(R_E);
-      Zero_Wheel_Speed(L_HE);
-      Zero_Wheel_Speed(L_E);
-   }
-
-   Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
-   Convert_Speeds_2_Velocities();
-   Filter_Wheel_Speeds();
-
-#ifdef DEBUG
+#ifdef TUNE
    /* Used for tuning the PID controllers */
    uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_speed_sp*1000);
-   uint16_t r_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.r_he*1000);
-   uint16_t l_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.l_he*1000);
+   uint16_t r_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.r_he*1000);
+   uint16_t l_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.l_he*1000);
 
    PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
 #endif
@@ -153,8 +139,8 @@ void Run_Motor_Controls(void)
       v_l_sp = MC_Stream_Data.l_speed_sp * L_Ke;
 #ifndef OPEN_LOOP
       /* Compute the voltage feedback */
-      v_r_fb = MC_Stream_Data.filt_speeds.r_he * R_Ke;
-      v_l_fb = MC_Stream_Data.filt_speeds.l_he * L_Ke;
+      v_r_fb = MC_Stream_Data.wheel_ang_v.r_he * R_Ke;
+      v_l_fb = MC_Stream_Data.wheel_ang_v.l_he * L_Ke;
 
       /* Run the PID controllers */
       MC_Stream_Data.u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
@@ -211,37 +197,26 @@ void Run_Motor_Controls(void)
    assert(bytes_sent == sizeof(MC_Stream_Data));
 }
 
-static inline void Filter_Wheel_Speeds(void)
+bool Right_Motor_Stopped(void)
 {
-   MC_Stream_Data.filt_speeds.r = LP_Filter(MC_Stream_Data.raw_speeds.r,
-                                            MC_Stream_Data.filt_speeds.r,
-                                            WHEEL_SPEED_FILT_ALPHA);
-
-   MC_Stream_Data.filt_speeds.l = LP_Filter(MC_Stream_Data.raw_speeds.l,
-                                            MC_Stream_Data.filt_speeds.l,
-                                            WHEEL_SPEED_FILT_ALPHA);
-
-   MC_Stream_Data.filt_speeds.r_he = LP_Filter(MC_Stream_Data.raw_speeds.r_he,
-                                               MC_Stream_Data.filt_speeds.r_he,
-                                               WHEEL_SPEED_FILT_ALPHA);
-
-   MC_Stream_Data.filt_speeds.l_he = LP_Filter(MC_Stream_Data.raw_speeds.l_he,
-                                               MC_Stream_Data.filt_speeds.l_he,
-                                               WHEEL_SPEED_FILT_ALPHA);
+   return(R_Motor.stopped);
 }
 
-static inline void Convert_Speeds_2_Velocities(void)
+bool Left_Motor_Stopped(void)
 {
-   int8_t sign;
-
-   sign = FORWARD == R_Motor.Get_Direction() ? 1 : -1;
-   MC_Stream_Data.raw_speeds.r    = sign * MC_Stream_Data.raw_speeds.r;
-   MC_Stream_Data.raw_speeds.r_he = sign * MC_Stream_Data.raw_speeds.r_he;
-
-   sign = FORWARD == L_Motor.Get_Direction() ? 1 : -1;
-   MC_Stream_Data.raw_speeds.l    = sign * MC_Stream_Data.raw_speeds.l;
-   MC_Stream_Data.raw_speeds.l_he = sign * MC_Stream_Data.raw_speeds.l_he;
+   return(L_Motor.stopped);
 }
+
+int8_t Right_Wheel_Speed_Sign(void)
+{
+   return(FORWARD == R_Motor.Get_Direction() ? 1 : -1);
+}
+
+int8_t Left_Wheel_Speed_Sign(void)
+{
+   return(FORWARD == L_Motor.Get_Direction() ? 1 : -1);
+}
+
 
 void Update_Wheel_Speed_Setpoints(float l_sp, float r_sp)
 {

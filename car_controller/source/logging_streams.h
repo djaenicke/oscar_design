@@ -24,8 +24,7 @@ typedef struct
 typedef struct
 {
    uint32_t cnt;
-   Wheel_Speeds_T raw_speeds;
-   Wheel_Speeds_T filt_speeds;
+   Wheel_Speeds_T wheel_ang_v;
    float meas_vbatt;
    float max_vbatt;
    float max_speed;
