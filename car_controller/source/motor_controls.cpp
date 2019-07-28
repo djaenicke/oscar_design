@@ -22,6 +22,7 @@
 #include "assert.h"
 
 //#define OPEN_LOOP
+//#define DEBUG
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
@@ -32,17 +33,17 @@
 #define DRIVER_VDROP 2.0f
 
 //#define OPEN_LOOP
-#define L_Kp 0.3f
-#define L_Ki 2.2f
-#define L_Kd 0.05f
+#define L_Kp 6.0f
+#define L_Ki 26.0f
+#define L_Kd 0.0034531f
 
-#define R_Kp 0.2f
-#define R_Ki 3.5f
+#define R_Kp 6.0f
+#define R_Ki 18.0f
 #define R_Kd 0.0034531f
 
 #define TOLERANCE 0.0f /* rad/s - TODO: update*/
 
-#define CYCLE_TIME 0.05f
+#define CYCLE_TIME 0.025f
 #define S_2_MS 1000
 
 #define VBATT_FILT_ALPHA       0.4f
@@ -134,6 +135,15 @@ void Motor_Controls_Task(void *pvParameters)
       Get_Wheel_Speeds(&MC_Stream_Data.raw_speeds);
       Convert_Speeds_2_Velocities();
       Filter_Wheel_Speeds();
+
+#ifdef DEBUG
+      /* Used for tuning the PID controllers */
+      uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_speed_sp*1000);
+      uint16_t r_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.r_he*1000);
+      uint16_t l_debug  = (uint16_t)(MC_Stream_Data.filt_speeds.l_he*1000);
+
+      PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
+#endif
 
       /* Determine the maximum actuation voltage based on the current battery voltage */
       MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
