@@ -136,7 +136,7 @@ void Get_Wheel_Ang_Velocities(Wheel_Speeds_T * ang_velocities)
 
 void Get_Pose(Pose_T * dest)
 {
-   assert(pose);
+   assert(dest);
    (void) memcpy(dest, &Pose, sizeof(Pose_T));
 }
 

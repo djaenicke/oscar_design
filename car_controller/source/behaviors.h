@@ -11,5 +11,6 @@
 #define CYCLE_TIME 0.025f
 
 extern void Behaviors_Task(void *pvParameters);
+extern void Toggle_Autonomous_Mode(void);
 
 #endif /* BEHAVIORS_H_ */

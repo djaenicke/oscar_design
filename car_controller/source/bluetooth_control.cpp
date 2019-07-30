@@ -14,7 +14,7 @@
 #include "assert.h"
 #include "interrupt_prios.h"
 #include "object_detection.h"
-#include "go_to_point.h"
+#include "behaviors.h"
 
 #define RX_BUFFER_SIZE 10
 
@@ -58,12 +58,11 @@ void Bluetooth_Cmd_Task(void *pvParameters)
          switch (Cmd)
          {
            case 'f': Update_Wheel_Angular_V_SP( 20.0f,  20.0f, true); break;
-           //case 'f': Update_Destination(1, 1, 0.5);  break;
            case 'b': Update_Wheel_Angular_V_SP(-20.0f, -20.0f, true); break;
            case 'l': Update_Wheel_Angular_V_SP(-8.0f,    8.0f, true); break;
            case 'r': Update_Wheel_Angular_V_SP( 8.0f,   -8.0f, true); break;
            case 's': Stop(); break;
-           case 'a': break;
+           case 'a': Toggle_Autonomous_Mode(); break;
            case 'o': Open_Log_File();  break;
            case 'c': Close_Log_File(); break;
            case 't': Toggle_Obj_Det_Enable(); break;
