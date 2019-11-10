@@ -47,7 +47,7 @@ void Toggle_Autonomous_Mode(void)
    else
    {
       auto_mode_active = true;
-      Update_Destination(1, 1, 0.5);  break;
+      Update_Destination(1, 1, 0.5);
    }
 
    Stop();

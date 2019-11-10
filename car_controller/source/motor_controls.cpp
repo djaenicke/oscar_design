@@ -121,8 +121,8 @@ void Run_Motor_Controls(void)
 #if TUNE
    /* Used for tuning the PID controllers */
    uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_ang_v_sp*1000);
-   uint16_t r_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.r_he*1000);
-   uint16_t l_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.l_he*1000);
+   uint16_t r_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.r*1000);
+   uint16_t l_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.l*1000);
 
    PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
 #endif
@@ -138,8 +138,8 @@ void Run_Motor_Controls(void)
       v_l_sp = MC_Stream_Data.l_ang_v_sp * L_Ke;
 #if 0 == OPEN_LOOP
       /* Compute the voltage feedback */
-      v_r_fb = MC_Stream_Data.wheel_ang_v.r_he * R_Ke;
-      v_l_fb = MC_Stream_Data.wheel_ang_v.l_he * L_Ke;
+      v_r_fb = MC_Stream_Data.wheel_ang_v.r * R_Ke;
+      v_l_fb = MC_Stream_Data.wheel_ang_v.l * L_Ke;
 
       /* Run the PID controllers */
       u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
@@ -168,13 +168,11 @@ void Run_Motor_Controls(void)
       /* Zero the wheel speeds on a direction change */
       if (r_dir != R_Motor.Get_Direction())
       {
-         Zero_Wheel_Speed(R_HE);
-         Zero_Wheel_Speed(R_E);
+         Zero_Wheel_Speed(R);
       }
       if (l_dir != L_Motor.Get_Direction())
       {
-         Zero_Wheel_Speed(L_HE);
-         Zero_Wheel_Speed(L_E);
+         Zero_Wheel_Speed(L);
       }
    }
    else
