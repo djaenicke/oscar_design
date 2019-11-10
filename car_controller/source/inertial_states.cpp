@@ -64,8 +64,8 @@ void Update_Robot_States(void)
    My_MPU6050.Read_Gyro_Data(&MPU6050_Gyro_Data);
 
    /* Compute the robot's linear wheel velocities */
-   vr = Filt_Wheel_Ang_V.r_he * WHEEL_RADIUS;
-   vl = Filt_Wheel_Ang_V.l_he * WHEEL_RADIUS;
+   vr = Filt_Wheel_Ang_V.r * WHEEL_RADIUS;
+   vl = Filt_Wheel_Ang_V.l * WHEEL_RADIUS;
 
    /* Compute the robot's linear velocity based on the wheel speeds */
    v = ((vr + vl)/2);
@@ -96,10 +96,8 @@ void Sample_Wheel_Velocities(void)
 
    if (Right_Motor_Stopped() && Left_Motor_Stopped())
    {
-      Zero_Wheel_Speed(R_HE);
-      Zero_Wheel_Speed(R_E);
-      Zero_Wheel_Speed(L_HE);
-      Zero_Wheel_Speed(L_E);
+      Zero_Wheel_Speed(R);
+      Zero_Wheel_Speed(L);
    }
 
    Get_Wheel_Speeds(&wheel_speeds);
@@ -112,21 +110,16 @@ static inline void Convert_Speeds_2_Velocities(Wheel_Speeds_T * speeds)
    int8_t sign;
 
    sign = Right_Wheel_Speed_Sign();
-   Raw_Wheel_Ang_V.r    = sign * speeds->r;
-   Raw_Wheel_Ang_V.r_he = sign * speeds->r_he;
+   Raw_Wheel_Ang_V.r = sign * speeds->r;
 
    sign = Left_Wheel_Speed_Sign();
-   Raw_Wheel_Ang_V.l    = sign * speeds->l;
-   Raw_Wheel_Ang_V.l_he = sign * speeds->l_he;
+   Raw_Wheel_Ang_V.l = sign * speeds->l;
 }
 
 static inline void Filter_Wheel_Velocities()
 {
    Filt_Wheel_Ang_V.r = LP_Filter(Raw_Wheel_Ang_V.r, Filt_Wheel_Ang_V.r, WHEEL_SPEED_FILT_ALPHA);
    Filt_Wheel_Ang_V.l = LP_Filter(Raw_Wheel_Ang_V.l, Filt_Wheel_Ang_V.l, WHEEL_SPEED_FILT_ALPHA);
-
-   Filt_Wheel_Ang_V.r_he = LP_Filter(Raw_Wheel_Ang_V.r_he, Filt_Wheel_Ang_V.r_he, WHEEL_SPEED_FILT_ALPHA);
-   Filt_Wheel_Ang_V.l_he = LP_Filter(Raw_Wheel_Ang_V.l_he, Filt_Wheel_Ang_V.l_he, WHEEL_SPEED_FILT_ALPHA);
 }
 
 void Get_Wheel_Ang_Velocities(Wheel_Speeds_T * ang_velocities)

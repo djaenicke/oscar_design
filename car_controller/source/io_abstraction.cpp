@@ -110,8 +110,6 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
    {PORTC, GPIOC, 14, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* UART4_RX */
    {PORTC, GPIOC, 15, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* UART4_TX */
    {PORTB, GPIOB,  2, DEFAULT_ANALOG_PIN_CFG, kGPIO_DigitalOutput, NA},   /* VBATT */
-   {PORTB, GPIOB, 18, DEFAULT_GPIO_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
-   {PORTC, GPIOC,  8, DEFAULT_GPIO_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR */
    {PORTB, GPIOB, 11, DEFAULT_GPIO_PIN_CFG,   kGPIO_DigitalOutput, LOW},  /* Trigger Pin for USS */
    {PORTD, GPIOD,  3, DEFAULT_GPIO_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* Echo Pin for USS */
    {PORTC, GPIOC, 10, DEFAULT_ALT2_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* MPU6050 SCL */
@@ -123,8 +121,8 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
    {PORTE, GPIOE,  4, SDHC_PIN_CFG_1,         kGPIO_DigitalOutput, NA},   /* SDHC0_D3 */
    {PORTE, GPIOE,  5, SDHC_PIN_CFG_1,         kGPIO_DigitalOutput, NA},   /* SDHC0_D2 */
    {PORTE, GPIOE,  6, SDHC_PIN_CFG_2,         kGPIO_DigitalOutput, NA},   /* SDHC0_GPIO */
-   {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR_HE (Hall-effect) */
-   {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR_HE (Hall-effect) */
+   {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
+   {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR */
    {PORTB, GPIOB, 16, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* UART0_RX */
    {PORTB, GPIOB, 17, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalOutput, NA}    /* UART0_TX */
 };
