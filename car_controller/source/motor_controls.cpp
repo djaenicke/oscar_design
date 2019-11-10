@@ -21,10 +21,8 @@
 #include "battery_monitor.h"
 #include "low_pass_filter.h"
 #include "logging_streams.h"
+#include "debug_constants.h"
 #include "assert.h"
-
-//#define OPEN_LOOP
-//#define TUNE
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
@@ -111,7 +109,7 @@ void Run_Motor_Controls(void)
    float v_r_sp, v_l_sp;   /* Set point */
    float u_r, u_l; /* Actuation signals */
    Direction_T r_dir, l_dir;
-#ifndef OPEN_LOOP
+#if 0 == OPEN_LOOP
    float v_r_fb, v_l_fb;   /* Feedback */
 #else
    int8_t sign;
@@ -120,9 +118,9 @@ void Run_Motor_Controls(void)
    MC_Stream_Data.cnt++;
    Get_Wheel_Ang_Velocities(&MC_Stream_Data.wheel_ang_v);
 
-#ifdef TUNE
+#if TUNE
    /* Used for tuning the PID controllers */
-   uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_speed_sp*1000);
+   uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_ang_v_sp*1000);
    uint16_t r_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.r_he*1000);
    uint16_t l_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.l_he*1000);
 
@@ -138,7 +136,7 @@ void Run_Motor_Controls(void)
       /* Compute the voltage set points */
       v_r_sp = MC_Stream_Data.r_ang_v_sp * R_Ke;
       v_l_sp = MC_Stream_Data.l_ang_v_sp * L_Ke;
-#ifndef OPEN_LOOP
+#if 0 == OPEN_LOOP
       /* Compute the voltage feedback */
       v_r_fb = MC_Stream_Data.wheel_ang_v.r_he * R_Ke;
       v_l_fb = MC_Stream_Data.wheel_ang_v.l_he * L_Ke;
@@ -148,13 +146,13 @@ void Run_Motor_Controls(void)
       u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
 #else
       /* Saturate the set points to be within the actuator voltage range */
-      sign = signbit(u_r) ? -1 : 1;
-      MC_Stream_Data.u_r = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
-      MC_Stream_Data.u_r = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
+      sign = signbit(v_r_sp) ? -1 : 1;
+      u_r  = fabs(v_r_sp) > Min_Voltage ? v_r_sp : sign * Min_Voltage;
+      u_r  = fabs(v_r_sp) < MC_Stream_Data.max_vbatt ? v_r_sp : sign * MC_Stream_Data.max_vbatt;
 
-      sign = signbit(u_l) ? -1 : 1;
-      MC_Stream_Data.u_l = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign *Min_Voltage;
-      MC_Stream_Data.u_l = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
+      sign = signbit(v_l_sp) ? -1 : 1;
+      u_l  = fabs(v_l_sp) > Min_Voltage ? v_l_sp : sign * Min_Voltage;
+      u_l  = fabs(v_l_sp) < MC_Stream_Data.max_vbatt ? v_l_sp : sign * MC_Stream_Data.max_vbatt;
 #endif
       /* Convert the actuation voltages to duty cycles */
       MC_Stream_Data.u_r_dc = (uint8_t)(fabs(u_r) * (100/MC_Stream_Data.max_vbatt));

@@ -12,6 +12,7 @@
 #include "motor_controls.h"
 #include "mpu6050.h"
 #include "FXOS8700CQ.h"
+#include "debug_constants.h"
 #include "low_pass_filter.h"
 
 #define WHEEL_SPEED_FILT_ALPHA 0.4f
@@ -131,12 +132,16 @@ static inline void Filter_Wheel_Velocities()
 void Get_Wheel_Ang_Velocities(Wheel_Speeds_T * ang_velocities)
 {
    assert(ang_velocities);
+#if FILTER_WHEEL_SPEED
    (void) memcpy(ang_velocities, &Filt_Wheel_Ang_V, sizeof(Wheel_Speeds_T));
+#else
+   (void) memcpy(ang_velocities, &Raw_Wheel_Ang_V, sizeof(Wheel_Speeds_T));
+#endif
 }
 
 void Get_Pose(Pose_T * dest)
 {
-   assert(pose);
+   assert(dest);
    (void) memcpy(dest, &Pose, sizeof(Pose_T));
 }
 
