@@ -19,9 +19,7 @@
 #define END              ((uint8_t)1)
 
 #define MAX_MEASUREMENTS 50
-
 #define HE_PULSES_PER_REV ((uint8_t)192)
-#define HE_MIN_PERIOD 28
 
 typedef struct {
    uint8_t  meas_type;
@@ -32,8 +30,8 @@ typedef struct {
 
 static volatile Period_T Sensor_Period[NUM_WHEELS] = {0};
 
-static inline void  Measure_Period(Wheel_Sensor_T pos, uint16_t min_period);
-static inline float Period_2_Speed(Wheel_Sensor_T pos, uint8_t pulses_per_rev);
+static inline void  Measure_Period(Wheel_Sensor_T pos);
+static inline float Period_2_Speed(Wheel_Sensor_T pos);
 
 void Init_Wheel_Speed_Sensors(void)
 {
@@ -68,16 +66,11 @@ void Init_Wheel_Speed_Sensors(void)
 
 void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
 {
-   if (NULL != speeds)
-   {
-      /* Hall effect sensor measurement */
-      speeds->r = Period_2_Speed(R, HE_PULSES_PER_REV);
-      speeds->l = Period_2_Speed(L, HE_PULSES_PER_REV);
-   }
-   else
-   {
-      assert(false);
-   }
+   assert(speeds);
+
+   /* Hall effect sensor measurement */
+   speeds->r = Period_2_Speed(R);
+   speeds->l = Period_2_Speed(L);
 }
 
 void Zero_Wheel_Speed(Wheel_Sensor_T sensor)
@@ -90,18 +83,18 @@ extern "C"
 {
 void PORTC_IRQHandler(void)
 {
-   Measure_Period(L, HE_MIN_PERIOD);
+   Measure_Period(L);
    PORT_ClearPinsInterruptFlags(Pin_Cfgs[L_SPEED_SENSOR].pbase, 0xFFFFFFFF);
 }
 
 void PORTB_IRQHandler(void)
 {
-   Measure_Period(R, HE_MIN_PERIOD);
+   Measure_Period(R);
    PORT_ClearPinsInterruptFlags(Pin_Cfgs[R_SPEED_SENSOR].pbase, 0xFFFFFFFF);
 }
 }
 
-static inline void Measure_Period(Wheel_Sensor_T sensor, uint16_t min_period)
+static inline void Measure_Period(Wheel_Sensor_T sensor)
 {
    uint16_t period_cnt = 0;
 
@@ -113,18 +106,13 @@ static inline void Measure_Period(Wheel_Sensor_T sensor, uint16_t min_period)
    else
    {
       period_cnt = ((uint16_t) FTM1->CNT) - Sensor_Period[sensor].start_cnt;
-
-      if (period_cnt > min_period)
-      {
-         Sensor_Period[sensor].period_cnt[Sensor_Period[sensor].num_meas] = ((uint16_t) FTM1->CNT) - Sensor_Period[sensor].start_cnt;
-         Sensor_Period[sensor].num_meas++;
-      }
-
+      Sensor_Period[sensor].period_cnt[Sensor_Period[sensor].num_meas] = ((uint16_t) FTM1->CNT) - Sensor_Period[sensor].start_cnt;
+      Sensor_Period[sensor].num_meas++;
       Sensor_Period[sensor].meas_type = START;
    }
 }
 
-static inline float Period_2_Speed(Wheel_Sensor_T sensor, uint8_t pulses_per_rev)
+static inline float Period_2_Speed(Wheel_Sensor_T sensor)
 {
    uint16_t period = 0;
    float temp = 0.0f;
@@ -138,7 +126,7 @@ static inline float Period_2_Speed(Wheel_Sensor_T sensor, uint8_t pulses_per_rev
    if (period)
    {
       period /= Sensor_Period[sensor].num_meas;
-      temp = RAD_PER_REV/(pulses_per_rev*period*CLK_PERIOD);
+      temp = RAD_PER_REV/(HE_PULSES_PER_REV*period*CLK_PERIOD);
       Sensor_Period[sensor].num_meas = 0;
    }
 
