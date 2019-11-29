@@ -33,15 +33,16 @@
 #define DRIVER_VDROP 2.0f
 
 //#define OPEN_LOOP
-#define L_Kp 6.0f
-#define L_Ki 26.0f
-#define L_Kd 0.0034531f
+#define L_Kp 10.0f
+#define L_Ki 40.0f
+#define L_Kd 0.52f
 
-#define R_Kp 6.0f
-#define R_Ki 18.0f
-#define R_Kd 0.0034531f
+#define R_Kp 5.5f
+#define R_Ki 15.0f
+#define R_Kd 0.3f
 
-#define TOLERANCE 0.0f /* rad/s - TODO: update*/
+#define TOLERANCE      0.0f /* rad/s */
+#define STOP_THRESHOLD 0.5f /* rad/s */
 
 #define VBATT_FILT_ALPHA       0.4f
 
@@ -56,6 +57,8 @@ static PID R_PID;
 static const float Min_Voltage = 3.0; /* Motors require at least 3.0V */
 
 static Motor_Controls_Stream_T MC_Stream_Data;
+
+static bool Awaiting_Stop = false;
 
 void Init_Motor_Controls(void)
 {
@@ -108,6 +111,7 @@ void Run_Motor_Controls(void)
    size_t bytes_sent = 0;
    float v_r_sp, v_l_sp;   /* Set point */
    float u_r, u_l; /* Actuation signals */
+   float l_e, r_e; /* Error signals */
    Direction_T r_dir, l_dir;
 #if 0 == OPEN_LOOP
    float v_r_fb, v_l_fb;   /* Feedback */
@@ -141,6 +145,10 @@ void Run_Motor_Controls(void)
       v_r_fb = MC_Stream_Data.wheel_ang_v.r * R_Ke;
       v_l_fb = MC_Stream_Data.wheel_ang_v.l * L_Ke;
 
+      /* Compute the error signals */
+      r_e = fabs(v_r_sp - v_r_fb);
+      l_e = fabs(v_l_sp - v_l_fb);
+
       /* Run the PID controllers */
       u_r = R_PID.Step(v_r_sp, v_r_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
       u_l = L_PID.Step(v_l_sp, v_l_fb, MC_Stream_Data.max_vbatt, Min_Voltage);
@@ -173,6 +181,13 @@ void Run_Motor_Controls(void)
       if (l_dir != L_Motor.Get_Direction())
       {
          Zero_Wheel_Speed(L);
+      }
+
+      if (Awaiting_Stop && (r_e < STOP_THRESHOLD) && (l_e < STOP_THRESHOLD))
+      {
+         L_Motor.Stop();
+         R_Motor.Stop();
+         Awaiting_Stop = false;
       }
    }
    else
@@ -227,7 +242,6 @@ void Update_Wheel_Angular_V_SP(float l_sp, float r_sp, bool reset_pid)
 void Stop(void)
 {
    Update_Wheel_Angular_V_SP(0.0f, 0.0f, true);
-   L_Motor.Stop();
-   R_Motor.Stop();
+   Awaiting_Stop = true;
 }
 
