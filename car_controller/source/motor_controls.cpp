@@ -32,7 +32,6 @@
 #define L_Ke 0.192f
 #define DRIVER_VDROP 2.0f
 
-//#define OPEN_LOOP
 #define L_Kp 10.0f
 #define L_Ki 40.0f
 #define L_Kd 0.52f
@@ -122,18 +121,24 @@ void Run_Motor_Controls(void)
    MC_Stream_Data.cnt++;
    Get_Wheel_Ang_Velocities(&MC_Stream_Data.wheel_ang_v);
 
+   /* Determine the maximum actuation voltage based on the current battery voltage */
+#if FILTER_VBATT
+   MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
+#else
+   MC_Stream_Data.meas_vbatt = Read_Battery_Voltage();
+#endif
+   MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
+
+
 #if TUNE
    /* Used for tuning the PID controllers */
    uint16_t sp_debug = (uint16_t)(MC_Stream_Data.r_ang_v_sp*1000);
    uint16_t r_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.r*1000);
    uint16_t l_debug  = (uint16_t)(MC_Stream_Data.wheel_ang_v.l*1000);
+   uint16_t vbatt    = (uint16_t)(MC_Stream_Data.meas_vbatt*1000);
 
-   PRINTF("%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug);
+   PRINTF("%d,%d,%d,%d,%d\n\r", MC_Stream_Data.cnt, sp_debug, r_debug, l_debug, vbatt);
 #endif
-
-   /* Determine the maximum actuation voltage based on the current battery voltage */
-   MC_Stream_Data.meas_vbatt = LP_Filter(Read_Battery_Voltage(), MC_Stream_Data.meas_vbatt, VBATT_FILT_ALPHA);
-   MC_Stream_Data.max_vbatt  = MC_Stream_Data.meas_vbatt - DRIVER_VDROP;
 
    if (!L_Motor.stopped && !R_Motor.stopped)
    {

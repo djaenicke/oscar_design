@@ -11,5 +11,6 @@
 #define OPEN_LOOP          (0)
 #define TUNE               (0)
 #define FILTER_WHEEL_SPEED (1)
+#define FILTER_VBATT       (1)
 
 #endif /* DEBUG_CONSTANTS_H_ */

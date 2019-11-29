@@ -1,15 +1,15 @@
-num_samples = length(r_wheel_speed);
+num_samples = length(v_batt);
 
 % Control loop is run at 25ms rate
 fs = 1/0.025; 
 
 % Perform the FFT
-ycoef = fft(r_wheel_speed-mean(r_wheel_speed));
+ycoef = fft(v_batt - mean(v_batt));
 
 % Normalize all components by N
 ycoef = ycoef/num_samples;
 
-% Multiple everything except the DC component by 2 to normalize by N/2
+% Multiply everything except the DC component by 2 to normalize by N/2
 ycoef(2:num_samples) = 2*ycoef(2:num_samples);
 
 % Only the first N/2 coefficients are significant 
