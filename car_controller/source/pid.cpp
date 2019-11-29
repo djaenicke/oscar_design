@@ -50,7 +50,7 @@ float PID::Step(float sp, float fb, float max, float min)
    /* Determine the sign of u */
    sign = signbit(u) ? -1 : 1;
 
-   /* Limit the integral term */
+   /* Limit the integral term via clamping */
    if (fabs(u) < max)
    {
       integral = ti;
