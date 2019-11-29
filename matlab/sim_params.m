@@ -11,10 +11,12 @@ R_Kd =  0.3;        % Derivative gain
 L_Ke = 0.192;       % Voltage to speed constants
 R_Ke = 0.226;
 
-Vbatt = 8.5;        % Current battery voltage
+Vbatt = 7.5;        % Current battery voltage
 Min_V = 3;          % Minimum voltage for the motors to spin
 Driver_Vdrop = 2.0; % Voltage drop across motor driver
 Max_V = Vbatt - Driver_Vdrop;
+
+alpha = 0.4;
 
 s = tf('s');
 
