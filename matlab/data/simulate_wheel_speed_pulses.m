@@ -13,8 +13,8 @@ max_wheel_speed = fs/2/192*2*pi;   %(rad/s)
 bin_width = fs/N/192*2*pi;         %(rad/s)
 
 freq = wheel_speed*pulses_per_rev; %(rad/s)
-offset = 1;
-amp = 1;
+offset = 0.5;
+amp = 0.5;
 duty = 50;
 
 t=0:1/fs:control_loop_rate-(1/fs);

@@ -12,5 +12,6 @@
 #define TUNE               (0)
 #define FILTER_WHEEL_SPEED (1)
 #define FILTER_VBATT       (1)
+#define RUN_FFT_TEST       (1)
 
 #endif /* DEBUG_CONSTANTS_H_ */

@@ -63,6 +63,8 @@
 #include "interrupt_prios.h"
 #include "logging_streams.h"
 #include "object_detection.h"
+#include "fft_test.h"
+#include "debug_constants.h"
 
 /*******************************************************************************
  * Definitions
@@ -102,6 +104,10 @@ int main(void)
    BOARD_InitDebugConsole();
    NVIC_SetPriority(BOARD_SDHC_IRQ, SDHC_INT_PRIO);
    SYSMPU_Enable(SYSMPU, false);
+
+#if RUN_FFT_TEST
+   Run_FFT_Test();
+#endif
 
    Init_App();
    Set_GPIO(BLUE_LED, LOW);
