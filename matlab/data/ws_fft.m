@@ -1,24 +1,19 @@
-num_samples = length(r_wheel_speed);
-
-% Control loop is run at 25ms rate
-fs = 1/0.025; 
-
 % Perform the FFT
-ycoef = fft(r_wheel_speed-mean(r_wheel_speed));
+ycoef = fft(sq_wav);
 
 % Normalize all components by N
-ycoef = ycoef/num_samples;
+ycoef = ycoef/N;
 
 % Multiple everything except the DC component by 2 to normalize by N/2
-ycoef(2:num_samples) = 2*ycoef(2:num_samples);
+ycoef(2:N) = 2*ycoef(2:N);
 
 % Only the first N/2 coefficients are significant 
 %(the rest are mirror images)
-spectrum = ycoef(1:num_samples/2+1);
+spectrum = ycoef(1:N/2+1);
 
 % Construct a frequency vector with delta f spacing
 % The largest measurable frequency is (num_samples/2)-1
-freq = fs*(0:num_samples/2)/num_samples;
+freq = fs*(0:N/2)/N;
 
 % Plot the frequency versus magnitude
 % Note: abs is used to get the magnitude
@@ -28,10 +23,10 @@ xlabel('f (Hz)')
 ylabel('Magnitude');
 
 % Create a new spectrum vector ignoring the DC value
-ac_spectrum=abs(spectrum(2:length(spectrum)));
+ac_spectrum=abs(spectrum(min_idx:length(spectrum)));
 
 % Create a new frequency vector ignoring the DC value
-ac_freq = freq(2:length(freq));
+ac_freq = freq(min_idx:length(freq));
 
 % Find the largest magnitude in the spectrum
 max_value = max(ac_spectrum);
@@ -39,5 +34,5 @@ max_value = max(ac_spectrum);
 % Find the largest values coresponding index
 max_index = find(ac_spectrum == max_value);
 
-% The frequency where the maximum occurs
-max_noise_f = ac_freq(max_index);
+% The wheel speed is the frequency where the maximum occurs
+wheel_speed = (ac_freq(max_index)/192)*2*pi

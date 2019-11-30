@@ -10,7 +10,7 @@
 
 #include "wheel_speeds.h"
 
-#define WHEEL_BASE   (0.145f)  /* (m) */
+#define WHEEL_BASE   (0.134f)  /* (m) */
 #define WHEEL_RADIUS (0.0336f) /* (m) */
 
 typedef struct {

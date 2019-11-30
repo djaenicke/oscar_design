@@ -13,8 +13,8 @@
 
 /* Tuning parameters */
 #define Kp (4.0f)
-#define X_TOL (0.05) /* (m) */
-#define Y_TOL (0.05) /* (m) */
+#define X_TOL (0.025) /* (m) */
+#define Y_TOL (0.025) /* (m) */
 
 static Pose_T Pose_SP = {0};
 static float Robot_V = 0;
