@@ -20,14 +20,9 @@
 #define CLK_PERIOD (0.00002048f)
 
 extern float32_t FFT_Buffer[NUM_SAMPLES]; /* Input and Output Buffer */
-q15_t FFT_Buffer_q15[NUM_SAMPLES];
-
-uint32_t IFFT_Flag = 0;
-uint32_t Bit_Reverse_Flag = 1;
-uint32_t refIndex = 701, testIndex = 0;
 
 arm_rfft_fast_instance_f32  RFFT_Instance;
-arm_rfft_instance_q15 RFFT_Instance_q15;
+uint32_t IFFT_Flag = 0;
 
 void Run_FFT_Test(void)
 {
@@ -53,8 +48,6 @@ void Run_FFT_Test(void)
 
       arm_rfft_fast_f32(&RFFT_Instance, FFT_Buffer, FFT_Buffer, IFFT_Flag);
       arm_cmplx_mag_f32(FFT_Buffer, FFT_Buffer, NUM_SAMPLES/2);
-
-      /* Calculates maxValue and returns corresponding BIN value */
       arm_max_f32(&(FFT_Buffer[MIN_IDX]), MAX_IDX-MIN_IDX, &max_value, &max_idx);
 
       wheel_speed = (max_idx + MIN_IDX) * BIN_WIDTH;

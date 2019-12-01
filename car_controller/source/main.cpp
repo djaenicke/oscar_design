@@ -58,6 +58,7 @@
 #include "behaviors.h"
 #include "servo.h"
 #include "wheel_speeds.h"
+#include "wheel_speeds_fft.h"
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
 #include "interrupt_prios.h"
@@ -125,7 +126,11 @@ void Init_App(void)
 {
    Init_Battery_Monitor();
    Init_Inertial_Sensors();
+#if USE_FFT_WHEEL_SPEEDS
+   Init_Wheel_Speeds_FFT();
+#else
    Init_Wheel_Speed_Sensors();
+#endif
    Init_Motor_Controls();
    Init_Object_Detection();
    Bluetooth_Serial_Open();
