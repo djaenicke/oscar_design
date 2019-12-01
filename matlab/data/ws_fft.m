@@ -26,7 +26,7 @@ ylabel('Magnitude');
 ac_spectrum=abs(spectrum(min_idx:length(spectrum)));
 
 % Create a new frequency vector ignoring the DC value
-ac_freq = freq(min_idx:length(freq));
+ac_freq = freq(min_idx:max_idx);
 
 % Find the largest magnitude in the spectrum
 max_value = max(ac_spectrum);
