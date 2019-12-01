@@ -10,7 +10,7 @@
 
 typedef enum
 {
-   R,
+   R=0,
    L,
    NUM_WHEELS
 } Wheel_Sensor_T;
