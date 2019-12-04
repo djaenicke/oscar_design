@@ -58,11 +58,14 @@
 #include "behaviors.h"
 #include "servo.h"
 #include "wheel_speeds.h"
+#include "wheel_speeds_fft.h"
 #include "bluetooth_control.h"
 #include "battery_monitor.h"
 #include "interrupt_prios.h"
 #include "logging_streams.h"
 #include "object_detection.h"
+#include "fft_test.h"
+#include "debug_constants.h"
 
 /*******************************************************************************
  * Definitions
@@ -103,6 +106,10 @@ int main(void)
    NVIC_SetPriority(BOARD_SDHC_IRQ, SDHC_INT_PRIO);
    SYSMPU_Enable(SYSMPU, false);
 
+#if RUN_FFT_TEST
+   Run_FFT_Test();
+#endif
+
    Init_App();
    Set_GPIO(BLUE_LED, LOW);
 
@@ -119,7 +126,11 @@ void Init_App(void)
 {
    Init_Battery_Monitor();
    Init_Inertial_Sensors();
+#if USE_FFT_WHEEL_SPEEDS
+   Init_Wheel_Speeds_FFT();
+#else
    Init_Wheel_Speed_Sensors();
+#endif
    Init_Motor_Controls();
    Init_Object_Detection();
    Bluetooth_Serial_Open();

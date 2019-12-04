@@ -14,6 +14,7 @@
 #include "FXOS8700CQ.h"
 #include "debug_constants.h"
 #include "low_pass_filter.h"
+#include "wheel_speeds_fft.h"
 
 #define WHEEL_SPEED_FILT_ALPHA 0.4f
 
@@ -99,8 +100,11 @@ void Sample_Wheel_Velocities(void)
       Zero_Wheel_Speed(R);
       Zero_Wheel_Speed(L);
    }
-
+#if USE_FFT_WHEEL_SPEEDS
+   Get_Wheel_Speeds_FFT(&wheel_speeds);
+#else
    Get_Wheel_Speeds(&wheel_speeds);
+#endif
    Convert_Speeds_2_Velocities(&wheel_speeds);
    Filter_Wheel_Velocities();
 }
