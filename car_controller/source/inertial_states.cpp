@@ -61,8 +61,8 @@ void Update_Robot_States(void)
 
    Sample_Wheel_Velocities();
 
-   My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
-   My_MPU6050.Read_Gyro_Data(&MPU6050_Gyro_Data);
+   //My_MPU6050.Read_Accel_Data(&MPU6050_Accel_Data);
+   //My_MPU6050.Read_Gyro_Data(&MPU6050_Gyro_Data);
 
    /* Compute the robot's linear wheel velocities */
    vr = Filt_Wheel_Ang_V.r * WHEEL_RADIUS;
@@ -140,5 +140,21 @@ void Get_Pose(Pose_T * dest)
 {
    assert(dest);
    (void) memcpy(dest, &Pose, sizeof(Pose_T));
+}
+
+void Reset_Inertial_Data(void)
+{
+   Pose.x = 0;
+   Pose.y = 0;
+   Pose.theta = 0;
+
+   X_Dot = 0;
+   X_Dot_Last = 0;
+
+   Y_Dot = 0;
+   Y_Dot_Last = 0;
+
+   Theta_Dot = 0;
+   Theta_Dot_Last = 0;
 }
 

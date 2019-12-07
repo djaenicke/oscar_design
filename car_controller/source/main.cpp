@@ -135,6 +135,7 @@ void Init_App(void)
    Init_Object_Detection();
    Bluetooth_Serial_Open();
    Create_Streams();
+   Init_Behaviors();
 
    NVIC_SetPriorityGrouping(0U);
 }
