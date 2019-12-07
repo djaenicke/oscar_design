@@ -22,7 +22,8 @@ private:
    float  tol;
    float  kp;
    bool   in_route = false;
-   Pose_T pose_sp = {0};
+   float  heading_sp;
+   float  d_sp;
    Pose_T pose_fb = {0};
    float  robot_v;
 public:

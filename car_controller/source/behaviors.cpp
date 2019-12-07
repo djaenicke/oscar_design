@@ -16,17 +16,17 @@
 #include "motor_controls.h"
 
 #define S_2_MS 1000
-#define NUM_WAYPOINTS (2)
+#define NUM_WAYPOINTS (1)
 
 /* Tuning parameters */
 #define Kp  (4.0f)
-#define TOLERANCE (0.15) /* (m) */
+#define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
 
 static GoToPointController GTP_Controller;
 bool auto_mode_active = false;
 
-static Destination_T Waypoints[NUM_WAYPOINTS] = {{1,1}, {0,-1}};
+static Destination_T Waypoints[NUM_WAYPOINTS] = {4,0};
 static uint8_t Current_Waypoint = 0;
 
 void Behaviors_Task(void *pvParameters)
