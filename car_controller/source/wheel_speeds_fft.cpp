@@ -9,7 +9,6 @@
 
 #include "arm_math.h"
 #include "arm_const_structs.h"
-#include "arm_fft_bin_data.h"
 
 #include "fsl_ftm.h"
 #include "fsl_port.h"
