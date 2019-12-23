@@ -24,6 +24,8 @@
 *.lai
 *.la
 *.a
+!libarm_cortexM4lf_math.a
+!libarm_cortexM7l_math.a
 *.lib
 
 # Executables

@@ -13,7 +13,5 @@
 #define DEBUG_GTP_CONTROLLER (0)
 #define FILTER_WHEEL_SPEED   (1)
 #define FILTER_VBATT         (1)
-#define RUN_FFT_TEST         (0)
-#define USE_FFT_WHEEL_SPEEDS (1)
 
 #endif /* DEBUG_CONSTANTS_H_ */
