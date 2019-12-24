@@ -68,6 +68,9 @@ extern "C" {
 #define BOARD_SDHC_CD_PORT_IRQ_HANDLER PORTE_IRQHandler
 #define BOARD_SDHC_CARD_INSERT_CD_LEVEL (1U)
 
+/*! @brief The ENET PHY address. */
+#define BOARD_ENET0_PHY_ADDRESS (0x00U) /* Phy address of enet port 0. */
+
 /**
  * @brief 	Initialize board specific settings.
  */

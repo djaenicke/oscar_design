@@ -52,6 +52,19 @@ typedef enum
     L_SPEED_SENSOR,
     UART0_RX,
     UART0_TX,
+    RMII0_RXD1,
+    RMII0_RXD0,
+    RMII0_CRS_DV,
+    RMII0_TXEN,
+    RMII0_TXD0,
+    RMII0_TXD1,
+    RMII0_RXER,
+    RMII0_MDC,
+    ENET0_1588_TMR0,
+    ENET0_1588_TMR1,
+    ENET0_1588_TMR2,
+    PTA4,
+    RMII0_MDIO,
     NUM_IO /* !!! Make sure this is last */
 } IO_Map_T;
 

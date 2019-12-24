@@ -97,6 +97,28 @@
    kPORT_UnlockRegister \
 } \
 
+#define PTA4_PIN_CFG \
+{ \
+   kPORT_PullUp, \
+   kPORT_FastSlewRate, \
+   kPORT_PassiveFilterDisable, \
+   kPORT_OpenDrainDisable, \
+   kPORT_HighDriveStrength, \
+   kPORT_MuxAsGpio, \
+   kPORT_UnlockRegister \
+} \
+
+#define RMII0_MDIO_PIN_CFG \
+{ \
+   kPORT_PullUp, \
+   kPORT_FastSlewRate, \
+   kPORT_PassiveFilterDisable, \
+   kPORT_OpenDrainEnable, \
+   kPORT_LowDriveStrength, \
+   kPORT_MuxAlt4, \
+   kPORT_UnlockRegister \
+} \
+
 const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
 {
    {PORTB, GPIOB, 21, DEFAULT_GPIO_PIN_CFG,   kGPIO_DigitalOutput, HIGH}, /* BLUE_LED - Active Low */
@@ -124,7 +146,20 @@ const Pin_Cfg_T Pin_Cfgs[NUM_IO] =
    {PORTB, GPIOB, 19, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* R_SPEED_SENSOR */
    {PORTC, GPIOC,  1, PULLUP_GPIO_PIN_CFG,    kGPIO_DigitalInput,  NA},   /* L_SPEED_SENSOR */
    {PORTB, GPIOB, 16, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalInput,  NA},   /* UART0_RX */
-   {PORTB, GPIOB, 17, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalOutput, NA}    /* UART0_TX */
+   {PORTB, GPIOB, 17, DEFAULT_ALT3_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* UART0_TX */
+   {PORTA, GPIOA, 12, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_RXD1 */
+   {PORTA, GPIOA, 13, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_RXD0 */
+   {PORTA, GPIOA, 14, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_CRS_DV */
+   {PORTA, GPIOA, 15, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_TXEN */
+   {PORTA, GPIOA, 16, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_TXD0 */
+   {PORTA, GPIOA, 17, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_TXD1 */
+   {PORTA, GPIOA,  5, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_RXER */
+   {PORTB, GPIOB,  1, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* RMII0_MDC */
+   {PORTC, GPIOC, 16, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* ENET0_1588_TMR0 */
+   {PORTC, GPIOC, 17, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* ENET0_1588_TMR1 */
+   {PORTC, GPIOC, 18, DEFAULT_ALT4_PIN_CFG,   kGPIO_DigitalOutput, NA},   /* ENET0_1588_TMR2 */
+   {PORTA, GPIOA,  4, PTA4_PIN_CFG,           kGPIO_DigitalOutput, NA},   /* PTA4 */
+   {PORTB, GPIOB,  0, RMII0_MDIO_PIN_CFG,     kGPIO_DigitalOutput, NA}    /* RMII0_MDIO */
 };
 
 void Set_GPIO(IO_Map_T gpio, GPIO_State_T state)
