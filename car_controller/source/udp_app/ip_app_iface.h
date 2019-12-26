@@ -35,6 +35,7 @@ typedef enum
 ******************************************************************************/
 extern void Init_Network_If(void);
 extern void Print_DHCP_State(void);
+extern struct netif * Get_Netif(void);
 extern Network_Status_T Get_Network_Status(void);
 
 #endif /* IP_APP_IFACE_H_ */

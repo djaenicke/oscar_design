@@ -123,6 +123,11 @@ void Print_DHCP_State(void)
 }
 #endif
 
+struct netif * Get_Netif(void)
+{
+   return &FSL_NetIf;
+}
+
 Network_Status_T Get_Network_Status(void)
 {
 #if USE_ETHERNET

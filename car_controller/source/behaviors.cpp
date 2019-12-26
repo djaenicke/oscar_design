@@ -15,6 +15,8 @@
 #include "go_to_point.h"
 #include "motor_controls.h"
 #include "udp_client.h"
+#include "ip_app_iface.h"
+#include "fsl_debug_console.h"
 
 #define S_2_MS 1000
 #define NUM_WAYPOINTS (1)
@@ -24,7 +26,10 @@
 #define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
 
+#define RX_BUFFER_SIZE 100
+
 static UdpClient ROS_UDP;
+static char rx_buffer[RX_BUFFER_SIZE];
 
 static GoToPointController GTP_Controller;
 bool auto_mode_active = false;
@@ -34,8 +39,41 @@ static uint8_t Current_Waypoint = 0;
 
 void Behaviors_Task(void *pvParameters)
 {
+   uint8_t i = 0;
+
    while(1)
    {
+      if (CONNECTED == Get_Network_Status())
+      {
+         if (!ROS_UDP.Is_Initialized())
+         {
+            ROS_UDP.Init(Get_Netif(), 5000);
+         }
+
+         if (ROS_UDP.Is_Initialized() && !ROS_UDP.Is_Connected())
+         {
+            ROS_UDP.Set_Remote_Ip("192.168.1.4");
+            ROS_UDP.Set_Remote_Port(5000);
+            ROS_UDP.Connect();
+         }
+
+         if (ROS_UDP.Is_Connected())
+         {
+            //ROS_UDP.Send_Datagram("Sent from ROS embedded client!", strlen("Sent from ROS embedded client!"));
+            i = 0;
+            while (ROS_UDP.Rx_Bytes_Available())
+            {
+               rx_buffer[i++] = ROS_UDP.Read_Byte();
+               //ROS_UDP.Read_Datagram(rx_buffer, RX_BUFFER_SIZE);
+               //PRINTF("%s", rx_buffer);
+            }
+            if (i)
+            {
+               PRINTF("%s", rx_buffer);
+            }
+         }
+      }
+
       Update_Robot_States();
 
       Run_Object_Detection();
@@ -68,20 +106,6 @@ void Behaviors_Task(void *pvParameters)
 
 void Init_Behaviors(void)
 {
-   ip4_addr_t remote_ip;
-   remote_ip.addr = ipaddr_addr("192.168.1.4");
-
-   if (UDP_CLIENT_SUCCESS == ROS_UDP.Init())
-   {
-      ROS_UDP.Set_Remote_Ip(&remote_ip);
-      ROS_UDP.Set_Remote_Port((uint16_t)5000);
-
-      if (UDP_CLIENT_SUCCESS == ROS_UDP.Connect())
-      {
-         ROS_UDP.Send_Datagram("Hello World!", strlen("Hello World!"));
-      }
-   }
-
    GTP_Controller.Init(TOLERANCE, Kp, GTP_SPEED);
 }
 
