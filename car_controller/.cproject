@@ -115,6 +115,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="../drivers"/>
 									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../source/config"/>
+									<listOptionValue builtIn="false" value="../source/controllers"/>
+									<listOptionValue builtIn="false" value="../source/hw_abstraction"/>
+									<listOptionValue builtIn="false" value="../source/motors"/>
+									<listOptionValue builtIn="false" value="../source/sd_logging"/>
+									<listOptionValue builtIn="false" value="../source/sensors"/>
+									<listOptionValue builtIn="false" value="../source/udp_app"/>
+									<listOptionValue builtIn="false" value="../source/bluetooth"/>
 									<listOptionValue builtIn="false" value="../fatfs"/>
 									<listOptionValue builtIn="false" value="../component/lists"/>
 									<listOptionValue builtIn="false" value="../sdmmc/inc"/>
@@ -251,6 +259,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="../drivers"/>
 									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../source/config"/>
+									<listOptionValue builtIn="false" value="../source/controllers"/>
+									<listOptionValue builtIn="false" value="../source/motors"/>
+									<listOptionValue builtIn="false" value="../source/sd_logging"/>
+									<listOptionValue builtIn="false" value="../source/sensors"/>
+									<listOptionValue builtIn="false" value="../source/udp_app"/>
+									<listOptionValue builtIn="false" value="../source/bluetooth"/>
+									<listOptionValue builtIn="false" value="../source/hw_abstraction"/>
 									<listOptionValue builtIn="false" value="../fatfs"/>
 									<listOptionValue builtIn="false" value="../component/lists"/>
 									<listOptionValue builtIn="false" value="../sdmmc/inc"/>
@@ -646,6 +662,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="../drivers"/>
 									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../source/config"/>
+									<listOptionValue builtIn="false" value="../source/controllers"/>
+									<listOptionValue builtIn="false" value="../source/hw_abstraction"/>
+									<listOptionValue builtIn="false" value="../source/motors"/>
+									<listOptionValue builtIn="false" value="../source/sd_logging"/>
+									<listOptionValue builtIn="false" value="../source/sensors"/>
+									<listOptionValue builtIn="false" value="../source/udp_app"/>
+									<listOptionValue builtIn="false" value="../source/bluetooth"/>
 									<listOptionValue builtIn="false" value="../fatfs"/>
 									<listOptionValue builtIn="false" value="../component/lists"/>
 									<listOptionValue builtIn="false" value="../sdmmc/inc"/>
@@ -657,14 +681,6 @@
 									<listOptionValue builtIn="false" value="../utilities"/>
 									<listOptionValue builtIn="false" value="../board"/>
 									<listOptionValue builtIn="false" value="../"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/arm-none-eabi"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/backward"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include-fixed"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/contrib/apps/ping}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.include.files.1600406612" name="Include files (-include)" superClass="gnu.cpp.compiler.option.include.files" useByScannerDiscovery="false"/>
 								<option id="gnu.cpp.compiler.option.optimization.flags.271345866" name="Other optimization flags" superClass="gnu.cpp.compiler.option.optimization.flags" useByScannerDiscovery="false" value="-fno-common" valueType="string"/>
@@ -787,6 +803,14 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/src/include}&quot;"/>
 									<listOptionValue builtIn="false" value="../drivers"/>
 									<listOptionValue builtIn="false" value="../source"/>
+									<listOptionValue builtIn="false" value="../source/config"/>
+									<listOptionValue builtIn="false" value="../source/controllers"/>
+									<listOptionValue builtIn="false" value="../source/motors"/>
+									<listOptionValue builtIn="false" value="../source/sd_logging"/>
+									<listOptionValue builtIn="false" value="../source/sensors"/>
+									<listOptionValue builtIn="false" value="../source/udp_app"/>
+									<listOptionValue builtIn="false" value="../source/bluetooth"/>
+									<listOptionValue builtIn="false" value="../source/hw_abstraction"/>
 									<listOptionValue builtIn="false" value="../fatfs"/>
 									<listOptionValue builtIn="false" value="../component/lists"/>
 									<listOptionValue builtIn="false" value="../sdmmc/inc"/>
@@ -798,14 +822,6 @@
 									<listOptionValue builtIn="false" value="../utilities"/>
 									<listOptionValue builtIn="false" value="../board"/>
 									<listOptionValue builtIn="false" value="../"/>
-									<listOptionValue builtIn="false" value="../CMSIS"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/arm-none-eabi"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include/c++/7.3.1/backward"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/lib/gcc/arm-none-eabi/7.3.1/include-fixed"/>
-									<listOptionValue builtIn="false" value="c:/nxp/mcuxpressoide_10.3.0_2200/ide/plugins/com.nxp.mcuxpresso.tools.win32_10.3.0.201811011841/tools/arm-none-eabi/include"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/lwip/contrib/apps/ping}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.include.files.442508218" name="Include files (-include)" superClass="gnu.c.compiler.option.include.files" useByScannerDiscovery="false"/>
 								<option id="gnu.c.compiler.option.optimization.flags.1806157377" name="Other optimization flags" superClass="gnu.c.compiler.option.optimization.flags" useByScannerDiscovery="false" value="-fno-common" valueType="string"/>
