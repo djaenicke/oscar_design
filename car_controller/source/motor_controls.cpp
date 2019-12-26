@@ -21,7 +21,7 @@
 #include "battery_monitor.h"
 #include "low_pass_filter.h"
 #include "logging_streams.h"
-#include "debug_constants.h"
+#include "constants.h"
 #include "assert.h"
 
 #define NUM_MOTORS 2

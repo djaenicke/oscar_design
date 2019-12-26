@@ -12,7 +12,7 @@
 #include "motor_controls.h"
 #include "mpu6050.h"
 #include "FXOS8700CQ.h"
-#include "debug_constants.h"
+#include "constants.h"
 #include "low_pass_filter.h"
 
 #define WHEEL_SPEED_FILT_ALPHA 0.4f

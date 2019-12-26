@@ -11,7 +11,7 @@
 #include "motor_controls.h"
 #include "fsl_debug_console.h"
 #include "assert.h"
-#include "debug_constants.h"
+#include "constants.h"
 
 /* Controller Design */
 /* https://pdfs.semanticscholar.org/edde/fa921e26efbbfd6c65ad1e13af0bbbc1b946.pdf */
