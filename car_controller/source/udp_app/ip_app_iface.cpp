@@ -10,7 +10,9 @@
  ******************************************************************************/
 #include "board.h"
 #include "ip_app_iface.h"
+#include "constants.h"
 
+#if USE_ETHERNET
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -24,9 +26,15 @@
 #define EXAMPLE_PHY_ADDRESS BOARD_ENET0_PHY_ADDRESS
 
 /*******************************************************************************
+* Variables
+******************************************************************************/
+static struct netif FSL_NetIf;
+static Network_Status_T Network_Status = NOT_CONNECTED;
+
+/*******************************************************************************
  * Function Definitions
  ******************************************************************************/
-void Init_Network_If(struct netif * net_if)
+void Init_Network_If(void)
 {
     ip4_addr_t fsl_netif0_ipaddr, fsl_netif0_netmask, fsl_netif0_gw;
     ethernetif_config_t fsl_enet_config0 = {
@@ -39,20 +47,20 @@ void Init_Network_If(struct netif * net_if)
 
     tcpip_init(NULL, NULL);
 
-    netifapi_netif_add(net_if, &fsl_netif0_ipaddr, &fsl_netif0_netmask, &fsl_netif0_gw, &fsl_enet_config0,
+    netifapi_netif_add(&FSL_NetIf, &fsl_netif0_ipaddr, &fsl_netif0_netmask, &fsl_netif0_gw, &fsl_enet_config0,
                        ethernetif0_init, tcpip_input);
-    netifapi_netif_set_default(net_if);
-    netifapi_netif_set_up(net_if);
+    netifapi_netif_set_default(&FSL_NetIf);
+    netifapi_netif_set_up(&FSL_NetIf);
 
-    netifapi_dhcp_start(net_if);
+    netifapi_dhcp_start(&FSL_NetIf);
 }
 
-void Print_DHCP_State(struct netif *netif)
+void Print_DHCP_State(void)
 {
     struct dhcp *dhcp;
     static uint8_t dhcp_last_state = DHCP_STATE_OFF;
 
-    dhcp = netif_dhcp_data(netif);
+    dhcp = netif_dhcp_data(&FSL_NetIf);
 
     if (dhcp == NULL)
     {
@@ -107,10 +115,33 @@ void Print_DHCP_State(struct netif *netif)
         if (dhcp_last_state == DHCP_STATE_BOUND)
         {
             PRINTF("\r\n");
-            PRINTF("\r\n IPv4 Address     : %s\r\n", ipaddr_ntoa(&netif->ip_addr));
-            PRINTF(" IPv4 Subnet mask : %s\r\n", ipaddr_ntoa(&netif->netmask));
-            PRINTF(" IPv4 Gateway     : %s\r\n\r\n", ipaddr_ntoa(&netif->gw));
+            PRINTF("\r\n IPv4 Address     : %s\r\n", ipaddr_ntoa(&(FSL_NetIf.ip_addr)));
+            PRINTF(" IPv4 Subnet mask : %s\r\n", ipaddr_ntoa(&(FSL_NetIf.netmask)));
+            PRINTF(" IPv4 Gateway     : %s\r\n\r\n", ipaddr_ntoa(&(FSL_NetIf.gw)));
         }
     }
 }
+#endif
 
+Network_Status_T Get_Network_Status(void)
+{
+#if USE_ETHERNET
+   struct dhcp *dhcp;
+
+   /* Check the network connection status */
+   dhcp = netif_dhcp_data(&FSL_NetIf);
+
+   if (netif_is_up(&FSL_NetIf) && DHCP_STATE_BOUND == dhcp->state)
+   {
+      Network_Status = CONNECTED;
+   }
+   else
+   {
+      Network_Status = NOT_CONNECTED;
+   }
+
+   return (Network_Status);
+#else
+   return (NOT_CONNECTED);
+#endif
+}

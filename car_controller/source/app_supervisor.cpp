@@ -45,10 +45,7 @@ static void Create_App_Tasks(void);
 /*******************************************************************************
 * Variables
 ******************************************************************************/
-#if USE_ETHERNET
-static struct netif FSL_NetIf;
-static Network_Status_T Network_Status = NOT_CONNECTED;
-#endif
+
 
 /*******************************************************************************
  * Function Definitions
@@ -67,7 +64,7 @@ void Init_App(void)
    NVIC_SetPriorityGrouping(0U);
 
 #if USE_ETHERNET
-   Init_Network_If(&FSL_NetIf);
+   Init_Network_If();
    xTaskCreate(Supervisor_Task,   "Supervisor",  512,  NULL, SUPERVISOR_PRIO,  NULL);
 #else
    Create_App_Tasks();
@@ -87,40 +84,20 @@ static void Create_App_Tasks(void)
 static void Supervisor_Task(void *pvParameters)
 {
    bool app_tasks_created = false;
-   struct dhcp *dhcp;
 
    while(1)
    {
-      /* Check the network connection status */
-      Print_DHCP_State(&FSL_NetIf);
-      dhcp = netif_dhcp_data(&FSL_NetIf);
-
-      if (netif_is_up(&FSL_NetIf) && DHCP_STATE_BOUND == dhcp->state)
+      Print_DHCP_State();
+      if (CONNECTED == Get_Network_Status())
       {
-
-         Network_Status = CONNECTED;
-
          if (!app_tasks_created)
          {
             Create_App_Tasks();
             app_tasks_created = true;
          }
       }
-      else
-      {
-         Network_Status = NOT_CONNECTED;
-      }
 
       vTaskDelay(pdMS_TO_TICKS(50));
    }
 }
 #endif
-
-Network_Status_T Get_Network_Status(void)
-{
-#if USE_ETHERNET
-   return (Network_Status);
-#else
-   return (NOT_CONNECTED);
-#endif
-}
