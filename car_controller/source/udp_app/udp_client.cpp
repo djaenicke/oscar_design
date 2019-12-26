@@ -122,18 +122,22 @@ uint16_t UdpClient::Rx_Bytes_Available(void)
 
 UdpClientRetStatus_T UdpClient::Read_Datagram(char *dest_buf, uint16_t max_len)
 {
-   UdpClientRetStatus_T ret_val;
+   UdpClientRetStatus_T ret_val = UDP_CLIENT_FAILURE;
+   working_rx_pbuf = orignal_rx_pbuf; /* Reset just in case */
 
-   if (rx_bytes_avail <= max_len)
+   if (orignal_rx_pbuf->tot_len <= max_len) /* Is dest_buf large enough? */
    {
-      memcpy(dest_buf, rx_pbuf->payload, rx_bytes_avail);
-      pbuf_free(rx_pbuf);
+      do
+      {
+         memcpy(&dest_buf, working_rx_pbuf->payload, working_rx_pbuf->len);
+         dest_buf += working_rx_pbuf->len;
+         working_rx_pbuf = working_rx_pbuf->next;
+      } while (working_rx_pbuf);
+
+      /* Free the original pbuf */
+      pbuf_free(orignal_rx_pbuf);
       rx_bytes_avail = 0;
       ret_val = UDP_CLIENT_SUCCESS;
-   }
-   else
-   {
-      ret_val = UDP_CLIENT_FAILURE;
    }
 
    return ret_val;
@@ -141,18 +145,23 @@ UdpClientRetStatus_T UdpClient::Read_Datagram(char *dest_buf, uint16_t max_len)
 
 char UdpClient::Read_Byte(void)
 {
-   uint16_t i;
    char c;
 
    if (rx_bytes_avail)
    {
-      i = rx_pbuf->tot_len - rx_bytes_avail;
-      c = *((char *)rx_pbuf->payload + i);
+      c = *((char *)working_rx_pbuf->payload + pbuf_offset);
+      pbuf_offset++;
       rx_bytes_avail--;
+
+      if (pbuf_offset > ((working_rx_pbuf->len)-1))
+      {
+         pbuf_offset = 0;
+         working_rx_pbuf = working_rx_pbuf->next;
+      }
 
       if (0 == rx_bytes_avail)
       {
-         pbuf_free(rx_pbuf);
+         pbuf_free(orignal_rx_pbuf);
       }
    }
    else
@@ -167,6 +176,15 @@ void UdpClient::Rx_Callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, cons
 {
    UdpClient * this_ptr = (UdpClient *) arg;
 
-   this_ptr->rx_pbuf = p;
-   this_ptr->rx_bytes_avail = p->tot_len;
+   if (0 == this_ptr->rx_bytes_avail)
+   {
+      this_ptr->orignal_rx_pbuf = p;
+      this_ptr->working_rx_pbuf = p;
+      this_ptr->rx_bytes_avail = p->tot_len;
+      this_ptr->pbuf_offset = 0;
+   }
+   else
+   {
+      this_ptr->rx_datagrams_dropped++;
+   }
 }

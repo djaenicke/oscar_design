@@ -21,8 +21,11 @@ private:
    bool initialized = false;
    bool connected = false;
 
+   struct pbuf *orignal_rx_pbuf = NULL;
+   struct pbuf *working_rx_pbuf = NULL;
    uint16_t rx_bytes_avail = 0;
-   struct pbuf *rx_pbuf = NULL;
+   uint16_t pbuf_offset = 0;
+   uint16_t rx_datagrams_dropped = 0;
 
    static void Rx_Callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, const ip_addr_t *addr, u16_t port);
 

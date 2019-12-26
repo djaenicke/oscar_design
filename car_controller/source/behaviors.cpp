@@ -26,7 +26,7 @@
 #define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
 
-#define RX_BUFFER_SIZE 100
+#define RX_BUFFER_SIZE 5000
 
 static UdpClient ROS_UDP;
 static char rx_buffer[RX_BUFFER_SIZE];
@@ -39,7 +39,7 @@ static uint8_t Current_Waypoint = 0;
 
 void Behaviors_Task(void *pvParameters)
 {
-   uint8_t i = 0;
+   uint16_t i = 0;
 
    while(1)
    {
