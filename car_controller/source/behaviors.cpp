@@ -14,6 +14,7 @@
 #include "object_detection.h"
 #include "go_to_point.h"
 #include "motor_controls.h"
+#include "udp_client.h"
 
 #define S_2_MS 1000
 #define NUM_WAYPOINTS (1)
@@ -22,6 +23,8 @@
 #define Kp  (4.0f)
 #define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
+
+static UdpClient ROS_UDP;
 
 static GoToPointController GTP_Controller;
 bool auto_mode_active = false;
@@ -65,6 +68,20 @@ void Behaviors_Task(void *pvParameters)
 
 void Init_Behaviors(void)
 {
+   ip4_addr_t remote_ip;
+   remote_ip.addr = ipaddr_addr("192.168.1.4");
+
+   if (UDP_CLIENT_SUCCESS == ROS_UDP.Init())
+   {
+      ROS_UDP.Set_Remote_Ip(&remote_ip);
+      ROS_UDP.Set_Remote_Port((uint16_t)5000);
+
+      if (UDP_CLIENT_SUCCESS == ROS_UDP.Connect())
+      {
+         ROS_UDP.Send_Datagram("Hello World!", strlen("Hello World!"));
+      }
+   }
+
    GTP_Controller.Init(TOLERANCE, Kp, GTP_SPEED);
 }
 
