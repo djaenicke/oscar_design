@@ -578,6 +578,7 @@
 								<option id="gnu.cpp.compiler.option.preprocessor.preprocess.2043897141" name="Preprocess only (-E)" superClass="gnu.cpp.compiler.option.preprocessor.preprocess" useByScannerDiscovery="false"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.preprocessor.def.671303234" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="SDK_DEBUGCONSOLE=1"/>
+									<listOptionValue builtIn="false" value="USE_RTOS"/>
 									<listOptionValue builtIn="false" value="PRINTF_ADVANCED_ENABLE"/>
 									<listOptionValue builtIn="false" value="PRINTF_FLOAT_ENABLE"/>
 									<listOptionValue builtIn="false" value="__FPU_PRESENT"/>
@@ -720,6 +721,7 @@
 								<option id="gnu.c.compiler.option.preprocessor.preprocess.1481779120" name="Preprocess only (-E)" superClass="gnu.c.compiler.option.preprocessor.preprocess" useByScannerDiscovery="false"/>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.547617243" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="SDK_DEBUGCONSOLE=1"/>
+									<listOptionValue builtIn="false" value="USE_RTOS"/>
 									<listOptionValue builtIn="false" value="PRINTF_FLOAT_ENABLE"/>
 									<listOptionValue builtIn="false" value="__FPU_PRESENT"/>
 									<listOptionValue builtIn="false" value="FSL_RTOS_FREE_RTOS"/>

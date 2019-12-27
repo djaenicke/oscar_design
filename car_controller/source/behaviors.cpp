@@ -26,7 +26,7 @@
 #define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
 
-#define RX_BUFFER_SIZE 5000
+#define RX_BUFFER_SIZE 100
 
 static UdpClient ROS_UDP;
 static char rx_buffer[RX_BUFFER_SIZE];
@@ -59,16 +59,10 @@ void Behaviors_Task(void *pvParameters)
 
          if (ROS_UDP.Is_Connected())
          {
-            //ROS_UDP.Send_Datagram("Sent from ROS embedded client!", strlen("Sent from ROS embedded client!"));
-            i = 0;
-            while (ROS_UDP.Rx_Bytes_Available())
+            ROS_UDP.Send_Datagram("Sent from ROS embedded client!", strlen("Sent from ROS embedded client!"));
+            if (ROS_UDP.Rx_Bytes_Available())
             {
-               rx_buffer[i++] = ROS_UDP.Read_Byte();
-               //ROS_UDP.Read_Datagram(rx_buffer, RX_BUFFER_SIZE);
-               //PRINTF("%s", rx_buffer);
-            }
-            if (i)
-            {
+               ROS_UDP.Read_Datagram(rx_buffer, RX_BUFFER_SIZE);
                PRINTF("%s", rx_buffer);
             }
          }

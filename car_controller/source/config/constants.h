@@ -13,6 +13,6 @@
 #define DEBUG_GTP_CONTROLLER (0)
 #define FILTER_WHEEL_SPEED   (1)
 #define FILTER_VBATT         (1)
-#define USE_ETHERNET         (1)
+#define USE_ETHERNET         (0)
 
 #endif /* CONSTANTS_H_ */
