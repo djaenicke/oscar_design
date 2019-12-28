@@ -18,6 +18,9 @@
 #include "ip_app_iface.h"
 #include "fsl_debug_console.h"
 
+#include <ros.h>
+#include <std_msgs/String.h>
+
 #define S_2_MS 1000
 #define NUM_WAYPOINTS (1)
 
@@ -28,48 +31,42 @@
 
 #define RX_BUFFER_SIZE 100
 
-static UdpClient ROS_UDP;
-static char rx_buffer[RX_BUFFER_SIZE];
-
 static GoToPointController GTP_Controller;
 bool auto_mode_active = false;
 
 static Destination_T Waypoints[NUM_WAYPOINTS] = {4,0};
 static uint8_t Current_Waypoint = 0;
 
+ros::NodeHandle  nh;
+
+std_msgs::String str_msg;
+ros::Publisher chatter("chatter", &str_msg);
+
+char hello[13] = "hello world!";
+
 void Behaviors_Task(void *pvParameters)
 {
-   uint16_t i = 0;
+   static bool nh_initialized = false;
 
    while(1)
    {
       if (CONNECTED == Get_Network_Status())
       {
-         if (!ROS_UDP.Is_Initialized())
+         if (!nh_initialized)
          {
-            ROS_UDP.Init(Get_Netif(), 5000);
+            nh.initNode();
+            nh.advertise(chatter);
+            nh_initialized = true;
          }
-
-         if (ROS_UDP.Is_Initialized() && !ROS_UDP.Is_Connected())
+         else
          {
-            ROS_UDP.Set_Remote_Ip("192.168.1.4");
-            ROS_UDP.Set_Remote_Port(5000);
-            ROS_UDP.Connect();
-         }
-
-         if (ROS_UDP.Is_Connected())
-         {
-            ROS_UDP.Send_Datagram("Sent from ROS embedded client!", strlen("Sent from ROS embedded client!"));
-            if (ROS_UDP.Rx_Bytes_Available())
-            {
-               ROS_UDP.Read_Datagram(rx_buffer, RX_BUFFER_SIZE);
-               PRINTF("%s", rx_buffer);
-            }
+            str_msg.data = hello;
+            chatter.publish(&str_msg);
+            nh.spinOnce();
          }
       }
 
       Update_Robot_States();
-
       Run_Object_Detection();
 
       if (auto_mode_active)
