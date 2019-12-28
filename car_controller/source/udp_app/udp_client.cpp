@@ -164,10 +164,6 @@ char UdpClient::Read_Byte(void)
          pbuf_free(orignal_rx_pbuf);
       }
    }
-   else
-   {
-      c = -1;
-   }
 
    return(c);
 }

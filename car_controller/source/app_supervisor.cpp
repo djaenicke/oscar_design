@@ -75,7 +75,7 @@ void Init_App(void)
 static void Create_App_Tasks(void)
 {
    xTaskCreate(SD_Card_Init_Task,    "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,     NULL);
-   xTaskCreate(Behaviors_Task,       "Behaviors_Task",    2048, NULL, BEHAVIORS_TASK_PRIO,        NULL);
+   xTaskCreate(Behaviors_Task,       "Behaviors_Task",    4096, NULL, BEHAVIORS_TASK_PRIO,        NULL);
    xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
    xTaskCreate(Log_MC_Stream_Task,   "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO,  NULL);
 }

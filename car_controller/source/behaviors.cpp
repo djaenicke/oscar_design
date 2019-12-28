@@ -46,10 +46,15 @@ char hello[13] = "hello world!";
 
 void Behaviors_Task(void *pvParameters)
 {
+   TickType_t xLastWakeTime;
    static bool nh_initialized = false;
+
+   xLastWakeTime = xTaskGetTickCount();
 
    while(1)
    {
+      vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));
+
       if (CONNECTED == Get_Network_Status())
       {
          if (!nh_initialized)
@@ -90,8 +95,6 @@ void Behaviors_Task(void *pvParameters)
       }
 
       Run_Motor_Controls();
-
-      vTaskDelay(pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));
    }
 }
 

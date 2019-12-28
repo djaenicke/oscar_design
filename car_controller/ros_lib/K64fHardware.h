@@ -27,7 +27,14 @@ public:
 	/* Read a byte from the serial port. -1 = failure */
 	int read()
 	{
-		return((int)ROS_UDP.Read_Byte());
+	   int ret_val = -1;
+
+	   if (ROS_UDP.Rx_Bytes_Available())
+	   {
+	      ret_val = (int) ROS_UDP.Read_Byte();
+	   }
+
+	   return (ret_val);
 	}
 
 	/* Write data to the connection to ROS */
