@@ -14,12 +14,15 @@
 #include "object_detection.h"
 #include "go_to_point.h"
 #include "motor_controls.h"
-#include "udp_client.h"
 #include "ip_app_iface.h"
 #include "fsl_debug_console.h"
+#include "mpu6050.h"
+#include "FXOS8700CQ.h"
+#include "wheel_speeds.h"
 
 #include <ros.h>
 #include <std_msgs/String.h>
+#include <sensor_msgs/Imu.h>
 
 #define S_2_MS 1000
 #define NUM_WAYPOINTS (1)
@@ -29,25 +32,27 @@
 #define TOLERANCE (0.01) /* (m) */
 #define GTP_SPEED (0.5)  /* (m/s) */
 
-#define RX_BUFFER_SIZE 100
-
 static GoToPointController GTP_Controller;
-bool auto_mode_active = false;
-
 static Destination_T Waypoints[NUM_WAYPOINTS] = {4,0};
 static uint8_t Current_Waypoint = 0;
+static bool Auto_Mode_Active = false;
 
-ros::NodeHandle  nh;
+/* IMU objects */
+static MPU6050    My_MPU6050;
+static FXOS8700CQ My_FXOS8700CQ;
 
-std_msgs::String str_msg;
-ros::Publisher chatter("chatter", &str_msg);
-
-char hello[13] = "hello world!";
+/* ROS Client Data */
+static ros::NodeHandle nh;
+static sensor_msgs::Imu IMU_Msgs[2];
 
 void Behaviors_Task(void *pvParameters)
 {
    TickType_t xLastWakeTime;
    static bool nh_initialized = false;
+
+   Wheel_Speeds_T wheel_ang_v;
+   Accel_Data_T accel_data = {0};
+   Gyro_Data_T  gyro_data  = {0};
 
    xLastWakeTime = xTaskGetTickCount();
 
@@ -60,21 +65,22 @@ void Behaviors_Task(void *pvParameters)
          if (!nh_initialized)
          {
             nh.initNode();
-            nh.advertise(chatter);
             nh_initialized = true;
          }
          else
          {
-            str_msg.data = hello;
-            chatter.publish(&str_msg);
             nh.spinOnce();
          }
       }
 
-      Update_Robot_States();
+      Measure_Wheel_Speeds();
+      Get_Wheel_Ang_Velocities(&wheel_ang_v);
+      //My_MPU6050.Read_Accel_Data(&accel_data);
+      //My_MPU6050.Read_Gyro_Data(&gyro_data);
+
       Run_Object_Detection();
 
-      if (auto_mode_active)
+      if (Auto_Mode_Active)
       {
          if (GTP_Controller.In_Route())
          {
@@ -100,18 +106,25 @@ void Behaviors_Task(void *pvParameters)
 
 void Init_Behaviors(void)
 {
+   /* Initialize the external 6-axis MPU6050 */
+   My_MPU6050.Init(FTM0, I2C1);
+
+   /* Initialize the 6-axis on board FXOS8700CQ */
+   My_FXOS8700CQ.Init();
+
+   /* Initialize the Go To Point controller */
    GTP_Controller.Init(TOLERANCE, Kp, GTP_SPEED);
 }
 
 void Toggle_Autonomous_Mode(void)
 {
-   if (auto_mode_active)
+   if (Auto_Mode_Active)
    {
-      auto_mode_active = false;
+      Auto_Mode_Active = false;
    }
    else
    {
-      auto_mode_active = true;
+      Auto_Mode_Active = true;
    }
 
    Stop();

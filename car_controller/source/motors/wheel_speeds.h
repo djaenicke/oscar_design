@@ -22,7 +22,8 @@ typedef struct
 } Wheel_Speeds_T;
 
 extern void Init_Wheel_Speed_Sensors(void);
-extern void Get_Wheel_Speeds(Wheel_Speeds_T * speeds);
+extern void Measure_Wheel_Speeds(void);
+extern void Get_Wheel_Ang_Velocities(Wheel_Speeds_T * ang_velocities);
 extern void Zero_Wheel_Speed(Wheel_Sensor_T sensor);
 
 #endif /* WHEEL_SPEEDS_H_ */
