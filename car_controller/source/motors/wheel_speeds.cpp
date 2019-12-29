@@ -76,8 +76,6 @@ void Measure_Wheel_Speeds(void)
    int8_t sign;
    Wheel_Speeds_T speeds;
 
-   assert(dest);
-
    if (Right_Motor_Stopped() && Left_Motor_Stopped())
    {
       Zero_Wheel_Speed(R);
