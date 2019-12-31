@@ -10,7 +10,6 @@
 #include "task.h"
 
 #include "behaviors.h"
-#include "inertial_states.h"
 #include "object_detection.h"
 #include "go_to_point.h"
 #include "motor_controls.h"
@@ -168,4 +167,13 @@ void Toggle_Autonomous_Mode(void)
    }
 
    Stop();
+}
+
+void Get_Pose(Pose_T * dest)
+{
+   assert(dest);
+
+   dest->x = (float) Odo_Msg.pose.pose.position.x;
+   dest->y = (float) Odo_Msg.pose.pose.position.y;
+   dest->theta = (float) Odo_Msg.pose.pose.orientation.w;
 }

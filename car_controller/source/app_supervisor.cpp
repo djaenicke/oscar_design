@@ -7,7 +7,7 @@
 /* Application */
 #include "app_supervisor.h"
 #include "data_logger.h"
-#include "inertial_states.h"
+
 #include "motor_controls.h"
 #include "behaviors.h"
 #include "servo.h"

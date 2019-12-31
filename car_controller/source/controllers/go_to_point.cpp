@@ -86,8 +86,6 @@ void GoToPointController::Update_Destination(Destination_T * dest)
    }
 
    in_route = true;
-
-   Reset_Inertial_Data();
 }
 
 bool GoToPointController::In_Route(void)

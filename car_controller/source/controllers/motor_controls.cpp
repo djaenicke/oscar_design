@@ -7,13 +7,13 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 #include "dc_motor.h"
 #include "behaviors.h"
-#include "inertial_states.h"
 #include "fsl_debug_console.h"
 #include "pid.h"
 #include "clock_config.h"
@@ -22,7 +22,6 @@
 #include "low_pass_filter.h"
 #include "logging_streams.h"
 #include "constants.h"
-#include "assert.h"
 
 #define NUM_MOTORS 2
 #define FTM_SOURCE_CLOCK CLOCK_GetFreq(kCLOCK_BusClk)
