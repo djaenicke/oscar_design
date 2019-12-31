@@ -6,8 +6,6 @@
  */
 
 #include "FXOS8700CQ.h"
-#include "fsl_i2c.h"
-#include "fsl_fxos.h"
 #include "fsl_port.h"
 #include "fsl_gpio.h"
 #include "fsl_debug_console.h"
@@ -22,23 +20,25 @@
 #define I2C_RELEASE_SCL_GPIO  GPIOE
 #define I2C_RELEASE_SCL_PIN   24U
 
-static fxos_handle_t FXOS_Handle = {0};
-static fxos_config_t FXOS_Cfg    = {0};
-static const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
+#define G (9.81f)
+#define UINT14_MAX  (0x3FFF)
+
+#define Normalize_14Bits(x) (((x) > (UINT14_MAX/2)) ? (x - UINT14_MAX):(x))
+#define Get_14bit_Signed_Val(msb, lsb) ((int16_t)(((uint16_t)((uint16_t)msb << 8) | (uint16_t)lsb) >> 2))
+#define Get_16bit_Signed_Val(msb, lsb) ((int16_t)(((uint16_t)((uint16_t)msb << 8) | (uint16_t)lsb)))
 
 static inline void I2C_Release_Bus(void);
 static void I2C_Release_Bus_Delay(void);
 static inline void I2C_Configure_Pins(void);
 
-status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff);
-status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
-                           uint8_t *rx_buff, uint8_t rx_buff_size);
+const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
 
 void FXOS8700CQ::Init(void)
 {
    i2c_master_config_t i2c_cfg = {0};
    uint8_t array_addr_size     = 0;
    status_t result             = kStatus_Fail;
+   uint8_t g_sensor_range;
 
    I2C_Release_Bus();
    I2C_Configure_Pins();
@@ -59,10 +59,71 @@ void FXOS8700CQ::Init(void)
       }
    }
 
-   if (result != kStatus_Success)
+   if (result == kStatus_Success)
+   {
+      /* Get sensor range */
+      if (FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &g_sensor_range, 1) != kStatus_Success)
+      {
+         PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
+         assert(0);
+      }
+
+      Set_Accel_Res((FXOS_Ascale_T)g_sensor_range);
+   }
+   else
    {
       PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
+      assert(0);
    }
+}
+
+void FXOS8700CQ::Set_Accel_Res(FXOS_Ascale_T ascale)
+{
+   switch (ascale)
+   {
+      case FXOS_2G:
+         scalings.accel = 0.000244 * G;
+         break;
+      case FXOS_4G:
+         scalings.accel = 0.000488 * G;
+         break;
+      case FXOS_8G:
+         scalings.accel = 0.000976 * G;
+         break;
+      default:
+         assert(0);
+         break;
+   }
+}
+
+void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
+{
+   status_t result = kStatus_Fail;
+   fxos_data_t sensor_data;
+   int16_t temp;
+
+   result = FXOS_ReadSensorData(&FXOS_Handle, &sensor_data);
+
+   if (kStatus_Success == result)
+   {
+      /* Get the accel data from the sensor data structure in 14 bit left format data */
+      temp = Get_14bit_Signed_Val(sensor_data.accelXMSB, sensor_data.accelXLSB);
+      temp = Normalize_14Bits(temp);
+      destination->ax = temp * scalings.accel;
+
+      temp = Get_14bit_Signed_Val(sensor_data.accelYMSB, sensor_data.accelYLSB);
+      temp = Normalize_14Bits(temp);
+      destination->ay = temp * scalings.accel;
+
+      temp = Get_14bit_Signed_Val(sensor_data.accelZMSB, sensor_data.accelZLSB);
+      temp = Normalize_14Bits(temp);
+      destination->az = temp * scalings.accel;
+
+      destination->mx = Get_16bit_Signed_Val(sensor_data.magXMSB, sensor_data.magXLSB);
+      destination->my = Get_16bit_Signed_Val(sensor_data.magYMSB, sensor_data.magYLSB);
+      destination->mz = Get_16bit_Signed_Val(sensor_data.magZMSB, sensor_data.magZLSB);
+   }
+
 }
 
 static void I2C_Release_Bus_Delay(void)
@@ -150,38 +211,3 @@ static inline void I2C_Configure_Pins(void)
    };
    PORT_SetPinConfig(PORTE, 25, &porte25_pin32_config); /* PORTE25 (pin 32) is configured as I2C0_SDA */
 }
-
-status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff)
-{
-    uint8_t data = (uint8_t)tx_buff;
-    i2c_master_transfer_t masterXfer;
-
-    /* Prepare transfer structure. */
-    masterXfer.slaveAddress   = device_addr;
-    masterXfer.direction      = kI2C_Write;
-    masterXfer.subaddress     = sub_addr;
-    masterXfer.subaddressSize = sub_addr_size;
-    masterXfer.data           = &data;
-    masterXfer.dataSize       = 1;
-    masterXfer.flags          = kI2C_TransferDefaultFlag;
-
-    return I2C_MasterTransferBlocking(I2C0, &masterXfer);
-}
-
-status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
-                    uint8_t *rx_buff, uint8_t rx_buff_size)
-{
-   i2c_master_transfer_t master_xfer;
-
-   /* Prepare transfer structure. */
-   master_xfer.slaveAddress   = dev_addr;
-   master_xfer.subaddress     = sub_addr;
-   master_xfer.subaddressSize = sub_addr_size;
-   master_xfer.data           = rx_buff;
-   master_xfer.dataSize       = rx_buff_size;
-   master_xfer.direction      = kI2C_Read;
-   master_xfer.flags          = kI2C_TransferDefaultFlag;
-
-   return I2C_MasterTransferBlocking(I2C0, &master_xfer);
-}
-

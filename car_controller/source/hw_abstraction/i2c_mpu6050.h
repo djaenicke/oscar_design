@@ -1,5 +1,5 @@
 /*
- * i2c_hardware.h
+ * i2c_mpu6050.h
  *
  *  Created on: Dec 31, 2019
  *      Author: Devin
@@ -27,8 +27,6 @@ public:
       /* Initialize I2C */
       I2C_Base = I2C1;
       I2C_MasterGetDefaultConfig(&i2c_cfg);
-      i2c_cfg.baudRate_Bps = 400000;
-
       I2C_MasterInit(I2C_Base, &i2c_cfg, CLOCK_GetFreq(kCLOCK_BusClk));
    }
 

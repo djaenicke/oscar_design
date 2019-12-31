@@ -62,9 +62,11 @@ void Behaviors_Task(void *pvParameters)
    TickType_t xLastWakeTime;
    static bool nh_initialized = false;
 
-   Wheel_Speeds_T wheel_ang_v;
-   Accel_Data_T accel_data = {0};
-   Gyro_Data_T  gyro_data  = {0};
+   Wheel_Speeds_T wheel_ang_v = {0};
+   Accel_Data_T   accel_data  = {0};
+   Gyro_Data_T    gyro_data   = {0};
+   Sensor_Data_T  fxos_data   = {0};
+
    float vr, vl = 0;
 
    xLastWakeTime = xTaskGetTickCount();
@@ -91,10 +93,12 @@ void Behaviors_Task(void *pvParameters)
       My_MPU6050.Read_Accel_Data(&accel_data);
       My_MPU6050.Read_Gyro_Data(&gyro_data);
 
+      My_FXOS8700CQ.Read_Data(&fxos_data);
+
       IMU_Msg.header.stamp = nh.now();
-      IMU_Msg.linear_acceleration.x = accel_data.ax;
-      IMU_Msg.linear_acceleration.y = accel_data.ay;
-      IMU_Msg.linear_acceleration.z = accel_data.az;
+      IMU_Msg.linear_acceleration.x = fxos_data.ax;
+      IMU_Msg.linear_acceleration.y = fxos_data.ay;
+      IMU_Msg.linear_acceleration.z = fxos_data.az;
 
       IMU_Msg.angular_velocity.x = gyro_data.gx;
       IMU_Msg.angular_velocity.y = gyro_data.gy;
@@ -146,7 +150,7 @@ void Behaviors_Task(void *pvParameters)
 void Init_Behaviors_Task(void *pvParameters)
 {
    /* Initialize the external 6-axis MPU6050 */
-   My_MPU6050.Init();
+   My_MPU6050.Init(AFS_2G, GFS_250DPS);
 
    /* Initialize the 6-axis on board FXOS8700CQ */
    My_FXOS8700CQ.Init();

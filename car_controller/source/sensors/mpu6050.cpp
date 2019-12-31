@@ -11,28 +11,13 @@
 #define MPU6050_ADDRESS 0x68  // Device address when ADO = 0
 #endif
 #define SELFTEST_PASS_THRESHOLD (1.0f) /* (%) */
-#define G (9.81)
+#define G (9.81f)
 #define TEMP_SENSITIVITY (340.0f)
 #define TEMP_OFFSET (36.53)
 
-enum Ascale
-{
-  AFS_2G = 0,
-  AFS_4G,
-  AFS_8G,
-  AFS_16G
-};
-
-enum Gscale
-{
-  GFS_250DPS = 0,
-  GFS_500DPS,
-  GFS_1000DPS,
-  GFS_2000DPS
-};
-
-static int Gscale = GFS_250DPS;
-static int Ascale = AFS_2G;
+#define X 0
+#define Y 1
+#define Z 2
 
 bool MPU6050::Test_Basic_I2C(void)
 {
@@ -99,18 +84,28 @@ void MPU6050::Low_Power_Accel_Only(void)
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c |  0x20); // Set cycle bit 5 to begin low power accelerometer motion interrupts
 }
 
-void MPU6050::Init(void)
+void MPU6050::Init(MPU6050_Ascale_T ascale, MPU6050_Gscale_T gscale)
 {
    uint8_t c;
+
+   a_scale = ascale;
+   g_scale = gscale;
 
    Init_I2C_If();
 
    if (true == Test_Basic_I2C())
    {
+      // Reset the device
+      Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x80);
+      Delay(100);
+   }
+
+   if (true == Test_Basic_I2C())
+   {
       Run_Self_Test();
       Calibrate();
-      scalings.accel = Get_Accel_Res() * G;
-      scalings.gyro = Get_Gyro_Res();
+      Set_Accel_Res(ascale);
+      Set_Gyro_Res(gscale);
    }
    else
    {
@@ -135,13 +130,13 @@ void MPU6050::Init(void)
    c = Read_Byte(MPU6050_ADDRESS, GYRO_CONFIG);
    Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c & ~0xE0); // Clear self-test bits [7:5]
    Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c & ~0x18); // Clear AFS bits [4:3]
-   Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c | Gscale << 3); // Set full scale range for the gyro
+   Write_Byte(MPU6050_ADDRESS, GYRO_CONFIG, c | g_scale << 3); // Set full scale range for the gyro
 
    // Set accelerometer configuration
    c = Read_Byte(MPU6050_ADDRESS, ACCEL_CONFIG);
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c & ~0xE0); // Clear self-test bits [7:5]
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c & ~0x18); // Clear AFS bits [4:3]
-   Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c | Ascale << 3); // Set full scale range for the accelerometer
+   Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, c | a_scale << 3); // Set full scale range for the accelerometer
 
    // Configure Interrupts and Bypass Enable
    // Set interrupt pin active high, push-pull, and clear on read of INT_STATUS, enable I2C_BYPASS_EN so additional chips
@@ -315,8 +310,8 @@ void MPU6050::Calibrate(void)
 void MPU6050::Run_Self_Test(void) // Should return percent deviation from factory trim values, +/- 14 or less deviation is a pass
 {
    uint8_t rawData[4];
-   uint8_t selfTest[NUM_DIMS*2];
-   float factoryTrim[NUM_DIMS*2], results[NUM_DIMS*2];
+   uint8_t selfTest[6];
+   float factoryTrim[6], results[6];
 
    // Configure the accelerometer for self-test
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, 0xF0); // Enable self test on all three axes and set accelerometer range to +/- 8 g
@@ -348,7 +343,7 @@ void MPU6050::Run_Self_Test(void) // Should return percent deviation from factor
 
    // Report results as a ratio of (STR - FT)/FT; the change from Factory Trim of the Self-Test Response
    // To get to percent, must multiply by 100 and subtract result from 100
-   for (int i = 0; i < NUM_DIMS*2; i++)
+   for (int i = 0; i < 6; i++)
    {
       results[i] = 100.0 + 100.0 * ((float)selfTest[i] - factoryTrim[i]) / factoryTrim[i]; // Report percent differences
 
@@ -360,62 +355,62 @@ void MPU6050::Run_Self_Test(void) // Should return percent deviation from factor
    }
 }
 
-float MPU6050::Get_Gyro_Res(void)
+void MPU6050::Set_Gyro_Res(MPU6050_Gscale_T gscale)
 {
-   switch (Gscale)
+   switch (gscale)
    {
       // Possible gyro scales (and their register bit settings) are:
       // 250 DPS (00), 500 DPS (01), 1000 DPS (10), and 2000 DPS  (11).
       // Here's a bit of an algorithm to calculate DPS/(ADC tick) based on that 2-bit value:
       case GFS_250DPS:
-         return 250.0 / 32768.0;
+         scalings.gyro = 250.0 / 32768.0;
          break;
       case GFS_500DPS:
-         return 500.0 / 32768.0;
+         scalings.gyro = 500.0 / 32768.0;
          break;
       case GFS_1000DPS:
-         return 1000.0 / 32768.0;
+         scalings.gyro = 1000.0 / 32768.0;
          break;
       case GFS_2000DPS:
-         return 2000.0 / 32768.0;
+         scalings.gyro = 2000.0 / 32768.0;
          break;
       default:
-         return 0;
+         assert(0);
          break;
    }
 }
 
-float MPU6050::Get_Accel_Res(void)
+void MPU6050::Set_Accel_Res(MPU6050_Ascale_T ascale)
 {
-   switch (Ascale)
+   switch (ascale)
    {
       // Possible accelerometer scales (and their register bit settings) are:
       // 2 Gs (00), 4 Gs (01), 8 Gs (10), and 16 Gs  (11).
       // Here's a bit of an algorithm to calculate DPS/(ADC tick) based on that 2-bit value:
       case AFS_2G:
-         return 2.0 / 32768.0;
+         scalings.accel = 2.0f/32768.0f*G;
          break;
       case AFS_4G:
-         return 4.0 / 32768.0;
+         scalings.accel = 4.0f/32768.0f*G;
          break;
       case AFS_8G:
-         return 8.0 / 32768.0;
+         scalings.accel = 8.0f/32768.0f*G;
          break;
       case AFS_16G:
-         return 16.0 / 32768.0;
+         scalings.accel = 16.0f/32768.0f*G;
          break;
       default:
-         return 0;
+         assert(0);
          break;
    }
 }
 
 void MPU6050::Read_Accel_Data(Accel_Data_T * destination)
 {
-   uint8_t raw_data[NUM_DIMS*2];  /* x/y/z accel register data stored here */
-   int16_t a[NUM_DIMS];
+   uint8_t raw_data[6];  /* x/y/z accel register data stored here */
+   int16_t a[3];
 
-   Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, NUM_DIMS*2, &raw_data[0]);  /* Read the six raw data registers into data array */
+   Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, 6, &raw_data[0]);  /* Read the six raw data registers into data array */
 
    a[X] = (int16_t)((raw_data[0] << 8) | raw_data[1]) ;  /* Turn the MSB and LSB into a signed 16-bit value */
    a[Y] = (int16_t)((raw_data[2] << 8) | raw_data[3]) ;
@@ -428,10 +423,10 @@ void MPU6050::Read_Accel_Data(Accel_Data_T * destination)
 
 void MPU6050::Read_Gyro_Data(Gyro_Data_T * destination)
 {
-   uint8_t rawData[NUM_DIMS*2];  // x/y/z gyro register data stored here
-   int16_t g[NUM_DIMS];
+   uint8_t rawData[6];  // x/y/z gyro register data stored here
+   int16_t g[3];
 
-   Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, NUM_DIMS*2, &rawData[0]);  /* Read the six raw data registers sequentially into data array */
+   Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, 6, &rawData[0]);  /* Read the six raw data registers sequentially into data array */
 
    g[X] = (int16_t)((rawData[0] << 8) | rawData[1]);  /* Turn the MSB and LSB into a signed 16-bit value */
    g[Y] = (int16_t)((rawData[2] << 8) | rawData[3]);
