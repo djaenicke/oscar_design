@@ -1,72 +1,43 @@
 #include <math.h>
+#include <assert.h>
 
 #include "mpu6050.h"
-#include "fsl_common.h"
 
-/* Get source clock for FTM driver */
-#define FTM_SOURCE_CLOCK (CLOCK_GetFreq(kCLOCK_McgFixedFreqClk)/32)
+/* Seven-bit device address is 110100 for ADO = 0 and 110101 for ADO = 1 */
+#define ADO 0
+#if ADO
+#define MPU6050_ADDRESS 0x69  // Device address when ADO = 1
+#else
+#define MPU6050_ADDRESS 0x68  // Device address when ADO = 0
+#endif
+#define SELFTEST_PASS_THRESHOLD (1.0f) /* (%) */
+#define G (9.81)
+#define TEMP_SENSITIVITY (340.0f)
+#define TEMP_OFFSET (36.53)
 
-#define MAX_DELAY (1342) /* ms */
+enum Ascale
+{
+  AFS_2G = 0,
+  AFS_4G,
+  AFS_8G,
+  AFS_16G
+};
+
+enum Gscale
+{
+  GFS_250DPS = 0,
+  GFS_500DPS,
+  GFS_1000DPS,
+  GFS_2000DPS
+};
 
 static int Gscale = GFS_250DPS;
 static int Ascale = AFS_2G;
-static uint32_t FTM_Clk_Freq = 0;
-
-void MPU6050::Init_Delay_Timer(void)
-{
-   ftm_config_t ftm_info;
-
-   FTM_GetDefaultConfig(&ftm_info);
-
-   /* Divide FTM clock by 4 */
-   ftm_info.prescale = kFTM_Prescale_Divide_32;
-
-   FTM_Init(ftm_base, &ftm_info);
-   FTM_SetTimerPeriod(ftm_base, UINT16_MAX);
-
-   ftm_base->CNT = 0;
-
-   FTM_Clk_Freq = FTM_SOURCE_CLOCK;
-}
-
-void MPU6050::Delay(uint16_t ms_delay)
-{
-   uint32_t start_cnt;
-   uint32_t elapsed_cnt;
-   uint64_t elapsed_ms;
-
-   /* Check that Set_FTM has been called */
-   assert(ftm_base);
-
-   /* Verify the delay is achievable without overflowing the FTM */
-   assert(ms_delay <= MAX_DELAY);
-
-   FTM_StartTimer(ftm_base, kFTM_FixedClock);
-   start_cnt = FTM_GetCurrentTimerCount(ftm_base);
-
-   do {
-      elapsed_cnt = FTM_GetCurrentTimerCount(ftm_base) - start_cnt;
-      elapsed_ms = COUNT_TO_MSEC(elapsed_cnt, FTM_Clk_Freq);
-   } while(elapsed_ms < ms_delay);
-
-   FTM_StopTimer(ftm_base);
-   ftm_base->CNT = 0;
-}
-
-void MPU6050::Test_Delay(uint16_t ms_delay)
-{
-   Init_Delay_Timer();
-   Delay(ms_delay);
-   FTM_Deinit(ftm_base);
-}
 
 bool MPU6050::Test_Basic_I2C(void)
 {
    bool test_passed = false;
    uint8_t actual_addr = 0;
-
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
 
    actual_addr = Read_Byte(MPU6050_ADDRESS, WHO_AM_I_MPU6050);
 
@@ -86,8 +57,6 @@ void MPU6050::Low_Power_Accel_Only(void)
    // above a threshold for some time on at least one axis), and zero-motion toggle (acceleration on each axis less than a
    // threshold for some time sets this flag, motion above the threshold turns it off). The high-pass filter takes gravity out
    // consideration for these threshold evaluations; otherwise, the flags would be set all the time!
-
-   Init_Delay_Timer();
 
    uint8_t c = Read_Byte(MPU6050_ADDRESS, PWR_MGMT_1);
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c & ~0x30); // Clear sleep and cycle bits [5:6]
@@ -128,25 +97,13 @@ void MPU6050::Low_Power_Accel_Only(void)
    c = Read_Byte(MPU6050_ADDRESS, PWR_MGMT_1);
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c & ~0x20); // Clear sleep and cycle bit 5
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, c |  0x20); // Set cycle bit 5 to begin low power accelerometer motion interrupts
-
-   FTM_Deinit(ftm_base);
 }
 
-void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
+void MPU6050::Init(void)
 {
-   i2c_master_config_t i2c_cfg = {0};
    uint8_t c;
 
-   /* Initialize I2C */
-   assert(i2c_base_ptr);
-   i2c_base = i2c_base_ptr;
-   I2C_MasterGetDefaultConfig(&i2c_cfg);
-   i2c_cfg.baudRate_Bps = 400000;
-   I2C_MasterInit(i2c_base, &i2c_cfg, CLOCK_GetFreq(kCLOCK_BusClk));
-
-   /* Assign the FTM */
-   assert(ftm_base_ptr);
-   ftm_base = ftm_base_ptr;
+   Init_I2C_If();
 
    if (true == Test_Basic_I2C())
    {
@@ -159,8 +116,6 @@ void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
    {
       assert(0);
    }
-
-   Init_Delay_Timer();
 
    // get stable time source
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x01);  // Set clock source to be PLL with x-axis gyroscope reference, bits 2:0 = 001
@@ -196,8 +151,6 @@ void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
 
    Delay(50);
 
-   FTM_Deinit(ftm_base);
-
    // Wait for data to be available
    while(!(Read_Byte(MPU6050_ADDRESS, INT_STATUS) & 0x01));
 }
@@ -209,11 +162,6 @@ void MPU6050::Calibrate(void)
    uint8_t data[12]; // data array to hold accelerometer and gyro x, y, z, data
    uint16_t ii, packet_count, fifo_count;
    int32_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
-
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
-
-   Init_Delay_Timer();
 
    // reset device, reset all registers, clear gyro and accelerometer bias registers
    Write_Byte(MPU6050_ADDRESS, PWR_MGMT_1, 0x80); // Write a one to bit 7 reset bit; toggle reset device
@@ -361,8 +309,6 @@ void MPU6050::Calibrate(void)
    biases.accel[X] = (float)accel_bias[0] / (float)accelsensitivity;
    biases.accel[Y] = (float)accel_bias[1] / (float)accelsensitivity;
    biases.accel[Z] = (float)accel_bias[2] / (float)accelsensitivity;
-
-   FTM_Deinit(ftm_base);
 }
 
 // Accelerometer and gyroscope self test; check calibration wrt factory settings
@@ -371,11 +317,6 @@ void MPU6050::Run_Self_Test(void) // Should return percent deviation from factor
    uint8_t rawData[4];
    uint8_t selfTest[NUM_DIMS*2];
    float factoryTrim[NUM_DIMS*2], results[NUM_DIMS*2];
-
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
-
-   Init_Delay_Timer();
 
    // Configure the accelerometer for self-test
    Write_Byte(MPU6050_ADDRESS, ACCEL_CONFIG, 0xF0); // Enable self test on all three axes and set accelerometer range to +/- 8 g
@@ -417,8 +358,6 @@ void MPU6050::Run_Self_Test(void) // Should return percent deviation from factor
       }
 
    }
-
-   FTM_Deinit(ftm_base);
 }
 
 float MPU6050::Get_Gyro_Res(void)
@@ -452,7 +391,7 @@ float MPU6050::Get_Accel_Res(void)
    {
       // Possible accelerometer scales (and their register bit settings) are:
       // 2 Gs (00), 4 Gs (01), 8 Gs (10), and 16 Gs  (11).
-      // Here's a bit of an algorith to calculate DPS/(ADC tick) based on that 2-bit value:
+      // Here's a bit of an algorithm to calculate DPS/(ADC tick) based on that 2-bit value:
       case AFS_2G:
          return 2.0 / 32768.0;
          break;
@@ -476,9 +415,6 @@ void MPU6050::Read_Accel_Data(Accel_Data_T * destination)
    uint8_t raw_data[NUM_DIMS*2];  /* x/y/z accel register data stored here */
    int16_t a[NUM_DIMS];
 
-   /* Check that Init has been called */
-   assert(i2c_base);
-
    Read_Bytes(MPU6050_ADDRESS, ACCEL_XOUT_H, NUM_DIMS*2, &raw_data[0]);  /* Read the six raw data registers into data array */
 
    a[X] = (int16_t)((raw_data[0] << 8) | raw_data[1]) ;  /* Turn the MSB and LSB into a signed 16-bit value */
@@ -494,9 +430,6 @@ void MPU6050::Read_Gyro_Data(Gyro_Data_T * destination)
 {
    uint8_t rawData[NUM_DIMS*2];  // x/y/z gyro register data stored here
    int16_t g[NUM_DIMS];
-
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
 
    Read_Bytes(MPU6050_ADDRESS, GYRO_XOUT_H, NUM_DIMS*2, &rawData[0]);  /* Read the six raw data registers sequentially into data array */
 
@@ -514,130 +447,9 @@ float MPU6050::Read_Die_Temp(void)
    uint8_t rawData[2];  // x/y/z gyro register data stored here
    float ret_val;
 
-   /* Check that Init_I2C has been called */
-   assert(i2c_base);
-
    Read_Bytes(MPU6050_ADDRESS, TEMP_OUT_H, 2, &rawData[0]);  // Read the two raw data registers sequentially into data array
 
    ret_val = (((int16_t)((rawData[0] << 8) | rawData[1]))/TEMP_SENSITIVITY) + TEMP_OFFSET; /* Convert to deg C */
 
    return(ret_val);
 }
-
-void MPU6050::Write_Byte(uint8_t addr, uint8_t sub_addr, uint8_t data)
-{
-   status_t status;
-   i2c_master_transfer_t masterXfer;
-
-   /* Prepare transfer structure. */
-   masterXfer.slaveAddress   = addr;
-   masterXfer.direction      = kI2C_Write;
-   masterXfer.subaddress     = sub_addr;
-   masterXfer.subaddressSize = 1;
-   masterXfer.data           = &data;
-   masterXfer.dataSize       = 1;
-   masterXfer.flags          = kI2C_TransferDefaultFlag;
-
-   status = I2C_MasterTransferBlocking(i2c_base, &masterXfer);
-
-   switch(status)
-   {
-      case kStatus_Success:
-         break;
-      case kStatus_I2C_Busy:
-         assert(false);
-         break;
-      case kStatus_I2C_Timeout:
-         assert(false);
-         break;
-      case kStatus_I2C_ArbitrationLost:
-         assert(false);
-         break;
-      case kStatus_I2C_Nak:
-         assert(false);
-         break;
-      default:
-         assert(false);
-         break;
-   }
-}
-
-uint8_t MPU6050::Read_Byte(uint8_t addr, uint8_t sub_addr)
-{
-   status_t status;
-   uint8_t data;
-   i2c_master_transfer_t master_xfer;
-
-   /* Prepare transfer structure. */
-   master_xfer.slaveAddress   = addr;
-   master_xfer.subaddress     = sub_addr;
-   master_xfer.subaddressSize = 1;
-   master_xfer.data           = &data;
-   master_xfer.dataSize       = 1;
-   master_xfer.direction      = kI2C_Read;
-   master_xfer.flags          = kI2C_TransferDefaultFlag;
-
-   status = I2C_MasterTransferBlocking(i2c_base, &master_xfer);
-
-   switch(status)
-   {
-      case kStatus_Success:
-         break;
-      case kStatus_I2C_Busy:
-         assert(false);
-         break;
-      case kStatus_I2C_Timeout:
-         assert(false);
-         break;
-      case kStatus_I2C_ArbitrationLost:
-         assert(false);
-         break;
-      case kStatus_I2C_Nak:
-         assert(false);
-         break;
-      default:
-         assert(false);
-         break;
-   }
-
-   return data;
-}
-
-void MPU6050::Read_Bytes(uint8_t addr, uint8_t sub_addr, uint8_t count, uint8_t * dest)
-{
-   status_t status;
-   i2c_master_transfer_t master_xfer;
-
-   /* Prepare transfer structure. */
-   master_xfer.slaveAddress   = addr;
-   master_xfer.subaddress     = sub_addr;
-   master_xfer.subaddressSize = 1;
-   master_xfer.data           = dest;
-   master_xfer.dataSize       = count;
-   master_xfer.direction      = kI2C_Read;
-   master_xfer.flags          = kI2C_TransferDefaultFlag;
-
-   status = I2C_MasterTransferBlocking(i2c_base, &master_xfer);
-
-   switch(status)
-   {
-      case kStatus_Success:
-         break;
-      case kStatus_I2C_Busy:
-         assert(false);
-         break;
-      case kStatus_I2C_Timeout:
-         assert(false);
-         break;
-      case kStatus_I2C_ArbitrationLost:
-         assert(false);
-         break;
-      case kStatus_I2C_Nak:
-         assert(false);
-         break;
-      default:
-         assert(false);
-         break;
-   }
-}
-

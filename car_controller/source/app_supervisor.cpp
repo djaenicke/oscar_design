@@ -22,21 +22,6 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define SUPERVISOR_PRIO            (configMAX_PRIORITIES - 1U)
-#define SD_CARD_INIT_TASK_PRIO     (configMAX_PRIORITIES - 2U)
-#define MC_DATA_LOGGING_TASK_PRIO  (configMAX_PRIORITIES - 3U)
-#define BEHAVIORS_TASK_PRIO        (configMAX_PRIORITIES - 4U)
-#define BLUETOOTH_CMD_TASK_PRIO    (configMAX_PRIORITIES - 5U)
-
-typedef struct Task_Cfg_Tag
-{
-    TaskFunction_t func;
-    const char name[configMAX_TASK_NAME_LEN];
-    const configSTACK_DEPTH_TYPE stack_size;
-    UBaseType_t priority;
-    TaskHandle_t handle;
-} Task_Cfg_T;
-
 #if USE_ETHERNET
 static void Supervisor_Task(void *pvParameters);
 #endif
@@ -54,7 +39,6 @@ void Init_App(void)
 {
    Init_Battery_Monitor();
    Init_Wheel_Speed_Sensors();
-   Init_Behaviors();
    Init_Motor_Controls();
    Init_Object_Detection();
    Bluetooth_Serial_Open();
@@ -73,10 +57,10 @@ void Init_App(void)
 
 static void Create_App_Tasks(void)
 {
-   xTaskCreate(SD_Card_Init_Task,    "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,     NULL);
-   xTaskCreate(Behaviors_Task,       "Behaviors_Task",    4096, NULL, BEHAVIORS_TASK_PRIO,        NULL);
-   xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control", 512,  NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
-   xTaskCreate(Log_MC_Stream_Task,   "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO,  NULL);
+   xTaskCreate(SD_Card_Init_Task,    "SD_Card_Init_Task",   1024, NULL, SD_CARD_INIT_TASK_PRIO,     NULL);
+   xTaskCreate(Init_Behaviors_Task,  "Behaviors_Init_Task", 512,  NULL, BEHAVIORS_TASK_PRIO,        NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control",   512,  NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
+   xTaskCreate(Log_MC_Stream_Task,   "MC_Logging_Task",     1024, NULL, MC_DATA_LOGGING_TASK_PRIO,  NULL);
 }
 
 #if USE_ETHERNET

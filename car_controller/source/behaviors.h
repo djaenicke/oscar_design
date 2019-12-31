@@ -18,8 +18,7 @@ typedef struct {
    float theta;
 } Pose_T;
 
-extern void Init_Behaviors(void);
-extern void Behaviors_Task(void *pvParameters);
+extern void Init_Behaviors_Task(void *pvParameters);
 extern void Toggle_Autonomous_Mode(void);
 extern void Get_Pose(Pose_T * dest);
 

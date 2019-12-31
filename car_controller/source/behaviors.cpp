@@ -10,6 +10,7 @@
 #include "task.h"
 
 #include "behaviors.h"
+#include "app_supervisor.h"
 #include "object_detection.h"
 #include "go_to_point.h"
 #include "motor_controls.h"
@@ -18,6 +19,7 @@
 #include "mpu6050.h"
 #include "FXOS8700CQ.h"
 #include "wheel_speeds.h"
+#include "delay.h"
 
 #include <ros.h>
 #include <std_msgs/String.h>
@@ -52,6 +54,8 @@ static nav_msgs::Odometry Odo_Msg;
 
 ros::Publisher imu("imu_data", &IMU_Msg);
 ros::Publisher odo("odo_data", &Odo_Msg);
+
+static void Behaviors_Task(void *pvParameters);
 
 void Behaviors_Task(void *pvParameters)
 {
@@ -139,10 +143,10 @@ void Behaviors_Task(void *pvParameters)
    }
 }
 
-void Init_Behaviors(void)
+void Init_Behaviors_Task(void *pvParameters)
 {
    /* Initialize the external 6-axis MPU6050 */
-   My_MPU6050.Init(FTM0, I2C1);
+   My_MPU6050.Init();
 
    /* Initialize the 6-axis on board FXOS8700CQ */
    My_FXOS8700CQ.Init();
@@ -153,6 +157,13 @@ void Init_Behaviors(void)
    /* Configure the different frame ids */
    IMU_Msg.header.frame_id = "base_link";
    Odo_Msg.header.frame_id = "base_link";
+
+   if (pdPASS != xTaskCreate(Behaviors_Task, "Behaviors_Task", 4096, NULL, BEHAVIORS_TASK_PRIO, NULL))
+   {
+      assert(0);
+   }
+
+   vTaskSuspend(NULL);
 }
 
 void Toggle_Autonomous_Mode(void)
