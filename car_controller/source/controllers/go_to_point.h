@@ -9,7 +9,7 @@
 #define GO_TO_POINT_H_
 
 #include <stdint.h>
-#include "inertial_states.h"
+#include "behaviors.h"
 
 typedef struct {
    float x;

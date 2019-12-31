@@ -1,7 +1,6 @@
 #include <math.h>
 
 #include "mpu6050.h"
-#include "assert.h"
 #include "fsl_common.h"
 
 /* Get source clock for FTM driver */
@@ -63,7 +62,7 @@ void MPU6050::Test_Delay(uint16_t ms_delay)
 
 bool MPU6050::Test_Basic_I2C(void)
 {
-   bool test_passed = true;
+   bool test_passed = false;
    uint8_t actual_addr = 0;
 
    /* Check that Init_I2C has been called */
@@ -71,9 +70,9 @@ bool MPU6050::Test_Basic_I2C(void)
 
    actual_addr = Read_Byte(MPU6050_ADDRESS, WHO_AM_I_MPU6050);
 
-   if (actual_addr != MPU6050_ADDRESS)
+   if (actual_addr == (uint8_t) MPU6050_ADDRESS)
    {
-      test_passed = false;
+      test_passed = true;
    }
 
    return (test_passed);
@@ -149,7 +148,7 @@ void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
    assert(ftm_base_ptr);
    ftm_base = ftm_base_ptr;
 
-   if (Test_Basic_I2C())
+   if (true == Test_Basic_I2C())
    {
       Run_Self_Test();
       Calibrate();
@@ -158,7 +157,7 @@ void MPU6050::Init(FTM_Type *ftm_base_ptr, I2C_Type *i2c_base_ptr)
    }
    else
    {
-      assert(false);
+      assert(0);
    }
 
    Init_Delay_Timer();
@@ -428,7 +427,7 @@ float MPU6050::Get_Gyro_Res(void)
    {
       // Possible gyro scales (and their register bit settings) are:
       // 250 DPS (00), 500 DPS (01), 1000 DPS (10), and 2000 DPS  (11).
-      // Here's a bit of an algorith to calculate DPS/(ADC tick) based on that 2-bit value:
+      // Here's a bit of an algorithm to calculate DPS/(ADC tick) based on that 2-bit value:
       case GFS_250DPS:
          return 250.0 / 32768.0;
          break;

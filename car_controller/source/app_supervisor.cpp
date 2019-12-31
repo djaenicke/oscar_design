@@ -7,7 +7,7 @@
 /* Application */
 #include "app_supervisor.h"
 #include "data_logger.h"
-#include "inertial_states.h"
+
 #include "motor_controls.h"
 #include "behaviors.h"
 #include "servo.h"
@@ -53,13 +53,12 @@ static void Create_App_Tasks(void);
 void Init_App(void)
 {
    Init_Battery_Monitor();
-   Init_Inertial_Sensors();
    Init_Wheel_Speed_Sensors();
+   Init_Behaviors();
    Init_Motor_Controls();
    Init_Object_Detection();
    Bluetooth_Serial_Open();
    Create_Streams();
-   Init_Behaviors();
 
    NVIC_SetPriorityGrouping(0U);
 
@@ -75,8 +74,8 @@ void Init_App(void)
 static void Create_App_Tasks(void)
 {
    xTaskCreate(SD_Card_Init_Task,    "SD_Card_Init_Task", 1024, NULL, SD_CARD_INIT_TASK_PRIO,     NULL);
-   xTaskCreate(Behaviors_Task,       "Behaviors_Task",    2048, NULL, BEHAVIORS_TASK_PRIO,        NULL);
-   xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control", 1024, NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
+   xTaskCreate(Behaviors_Task,       "Behaviors_Task",    4096, NULL, BEHAVIORS_TASK_PRIO,        NULL);
+   xTaskCreate(Bluetooth_Cmd_Task,   "Bluetooth_Control", 512,  NULL, BLUETOOTH_CMD_TASK_PRIO,    NULL);
    xTaskCreate(Log_MC_Stream_Task,   "MC_Logging_Task",   1024, NULL, MC_DATA_LOGGING_TASK_PRIO,  NULL);
 }
 

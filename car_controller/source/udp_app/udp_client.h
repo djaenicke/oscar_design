@@ -1,3 +1,6 @@
+#ifndef UDP_CLIENT_H_
+#define UDP_CLIENT_H_
+
 #include <stdint.h>
 
 #include "lwip/ip_addr.h"
@@ -37,8 +40,10 @@ public:
    bool Is_Connected(void);
    UdpClientRetStatus_T Set_Remote_Ip(const char *cp);
    UdpClientRetStatus_T Set_Remote_Port(uint16_t port);
-   UdpClientRetStatus_T Send_Datagram(char *src_buf, uint16_t len);
-   UdpClientRetStatus_T Read_Datagram(char *dest_buf, uint16_t max_len);
+   UdpClientRetStatus_T Send_Datagram(uint8_t *src_buf, uint16_t len);
+   UdpClientRetStatus_T Read_Datagram(uint8_t *dest_buf, uint16_t max_len);
    uint16_t Rx_Bytes_Available(void);
    char Read_Byte(void);
 };
+
+#endif /* UDP_CLIENT_H_ */

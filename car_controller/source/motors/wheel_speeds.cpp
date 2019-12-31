@@ -12,6 +12,9 @@
 #include "assert.h"
 #include "fsl_ftm.h"
 #include "interrupt_prios.h"
+#include "motor_controls.h"
+#include "low_pass_filter.h"
+#include "constants.h"
 
 #define RAD_PER_REV      (6.2831853f)
 #define CLK_PERIOD       (0.00002048f)
@@ -21,6 +24,8 @@
 #define MAX_MEASUREMENTS 50
 #define HE_PULSES_PER_REV ((uint8_t)192)
 
+#define WHEEL_SPEED_FILT_ALPHA 0.4f
+
 typedef struct {
    uint8_t  meas_type;
    uint8_t  num_meas;
@@ -28,6 +33,8 @@ typedef struct {
    uint16_t period_cnt[MAX_MEASUREMENTS];
 } Period_T;
 
+static Wheel_Speeds_T Raw_Wheel_Ang_V = {0};
+static Wheel_Speeds_T Filt_Wheel_Ang_V = {0};
 static volatile Period_T Sensor_Period[NUM_WHEELS] = {0};
 
 static inline void  Measure_Period(Wheel_Sensor_T pos);
@@ -64,13 +71,40 @@ void Init_Wheel_Speed_Sensors(void)
    EnableIRQ(PORTC_IRQn);
 }
 
-void Get_Wheel_Speeds(Wheel_Speeds_T * speeds)
+void Measure_Wheel_Speeds(void)
 {
-   assert(speeds);
+   int8_t sign;
+   Wheel_Speeds_T speeds;
+
+   if (Right_Motor_Stopped() && Left_Motor_Stopped())
+   {
+      Zero_Wheel_Speed(R);
+      Zero_Wheel_Speed(L);
+   }
 
    /* Hall effect sensor measurement */
-   speeds->r = Period_2_Speed(R);
-   speeds->l = Period_2_Speed(L);
+   speeds.r = Period_2_Speed(R);
+   speeds.l = Period_2_Speed(L);
+
+   /* Convert angular speed to angular velocity */
+   sign = Right_Wheel_Speed_Sign();
+   Raw_Wheel_Ang_V.r = sign * speeds.r;
+
+   sign = Left_Wheel_Speed_Sign();
+   Raw_Wheel_Ang_V.l = sign * speeds.l;
+
+   Filt_Wheel_Ang_V.r = LP_Filter(Raw_Wheel_Ang_V.r, Filt_Wheel_Ang_V.r, WHEEL_SPEED_FILT_ALPHA);
+   Filt_Wheel_Ang_V.l = LP_Filter(Raw_Wheel_Ang_V.l, Filt_Wheel_Ang_V.l, WHEEL_SPEED_FILT_ALPHA);
+}
+
+void Get_Wheel_Ang_Velocities(Wheel_Speeds_T * ang_velocities)
+{
+   assert(ang_velocities);
+#if FILTER_WHEEL_SPEED
+   (void) memcpy(ang_velocities, &Filt_Wheel_Ang_V, sizeof(Wheel_Speeds_T));
+#else
+   (void) memcpy(ang_velocities, &Raw_Wheel_Ang_V, sizeof(Wheel_Speeds_T));
+#endif
 }
 
 void Zero_Wheel_Speed(Wheel_Sensor_T sensor)

@@ -84,7 +84,7 @@ UdpClientRetStatus_T UdpClient::Disconnect(void)
    return UDP_CLIENT_SUCCESS;
 }
 
-UdpClientRetStatus_T UdpClient::Send_Datagram(char *src_buf, uint16_t len)
+UdpClientRetStatus_T UdpClient::Send_Datagram(uint8_t *src_buf, uint16_t len)
 {
    err_t lwip_error_code;
    UdpClientRetStatus_T ret_val;
@@ -120,7 +120,7 @@ uint16_t UdpClient::Rx_Bytes_Available(void)
    return(rx_bytes_avail);
 }
 
-UdpClientRetStatus_T UdpClient::Read_Datagram(char *dest_buf, uint16_t max_len)
+UdpClientRetStatus_T UdpClient::Read_Datagram(uint8_t *dest_buf, uint16_t max_len)
 {
    UdpClientRetStatus_T ret_val = UDP_CLIENT_FAILURE;
    working_rx_pbuf = orignal_rx_pbuf; /* Reset just in case */
@@ -163,10 +163,6 @@ char UdpClient::Read_Byte(void)
       {
          pbuf_free(orignal_rx_pbuf);
       }
-   }
-   else
-   {
-      c = -1;
    }
 
    return(c);
