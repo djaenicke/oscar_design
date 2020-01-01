@@ -23,7 +23,9 @@ typedef struct {
    float magno;
 } FXOS_Meas_Scalings_T;
 
-typedef struct {
+typedef struct
+{
+   bool data_valid;
    float ax;
    float ay;
    float az;
@@ -39,19 +41,28 @@ typedef enum
   FXOS_8G,
 } FXOS_Ascale_T;
 
+typedef enum
+{
+  FXOS_STANDBY = 0x00,
+  FXOS_ACTIVE = 0x01
+} FXOS_Mode_T;
+
 class FXOS8700CQ:I2C_FXOS
 {
 private:
+   FXOS_Ascale_T a_scale;
    FXOS_Meas_Biases_T biases;
    FXOS_Meas_Scalings_T scalings;
 
    fxos_handle_t FXOS_Handle = {0};
    fxos_config_t FXOS_Cfg    = {0};
 
+   void Set_Mode(FXOS_Mode_T mode);
    void Set_Accel_Res(FXOS_Ascale_T ascale);
+   void Calibrate(FXOS_Ascale_T ascale);
 
 public:
-   void Init(void);
+   void Init(FXOS_Ascale_T ascale);
    void Read_Data(Sensor_Data_T * destination);
 };
 

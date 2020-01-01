@@ -49,10 +49,12 @@ static FXOS8700CQ My_FXOS8700CQ;
 /* ROS Client Data */
 static ros::NodeHandle nh;
 
-static sensor_msgs::Imu IMU_Msg;
+static sensor_msgs::Imu IMU_Msg_MPU;
+static sensor_msgs::Imu IMU_Msg_FXOS;
 static nav_msgs::Odometry Odo_Msg;
 
-ros::Publisher imu("imu_data", &IMU_Msg);
+ros::Publisher imu_mpu("imu_data_mpu", &IMU_Msg_MPU);
+ros::Publisher imu_fxos("imu_data_fxos", &IMU_Msg_FXOS);
 ros::Publisher odo("odo_data", &Odo_Msg);
 
 static void Behaviors_Task(void *pvParameters);
@@ -82,7 +84,10 @@ void Behaviors_Task(void *pvParameters)
       vr = wheel_ang_v.r * WHEEL_RADIUS;
       vl = wheel_ang_v.l * WHEEL_RADIUS;
 
+      /* Update message time stamps */
       Odo_Msg.header.stamp = nh.now();
+      IMU_Msg_MPU.header.stamp = Odo_Msg.header.stamp;
+      IMU_Msg_FXOS.header.stamp = Odo_Msg.header.stamp;
 
       /* Compute the robot's linear velocity based on the wheel speeds */
       Odo_Msg.twist.twist.linear.x = ((vr + vl)/2);
@@ -93,29 +98,34 @@ void Behaviors_Task(void *pvParameters)
       My_MPU6050.Read_Accel_Data(&accel_data);
       My_MPU6050.Read_Gyro_Data(&gyro_data);
 
+      IMU_Msg_MPU.header.stamp = nh.now();
+      IMU_Msg_MPU.linear_acceleration.x = accel_data.ax;
+      IMU_Msg_MPU.linear_acceleration.y = accel_data.ay;
+      IMU_Msg_MPU.linear_acceleration.z = accel_data.az;
+
+      IMU_Msg_MPU.angular_velocity.x = gyro_data.gx;
+      IMU_Msg_MPU.angular_velocity.y = gyro_data.gy;
+      IMU_Msg_MPU.angular_velocity.z = gyro_data.gz;
+
       My_FXOS8700CQ.Read_Data(&fxos_data);
-
-      IMU_Msg.header.stamp = nh.now();
-      IMU_Msg.linear_acceleration.x = fxos_data.ax;
-      IMU_Msg.linear_acceleration.y = fxos_data.ay;
-      IMU_Msg.linear_acceleration.z = fxos_data.az;
-
-      IMU_Msg.angular_velocity.x = gyro_data.gx;
-      IMU_Msg.angular_velocity.y = gyro_data.gy;
-      IMU_Msg.angular_velocity.z = gyro_data.gz;
+      IMU_Msg_FXOS.linear_acceleration.x = fxos_data.ax;
+      IMU_Msg_FXOS.linear_acceleration.y = fxos_data.ay;
+      IMU_Msg_FXOS.linear_acceleration.z = fxos_data.az;
 
       if (CONNECTED == Get_Network_Status())
       {
          if (!nh_initialized)
          {
             nh.initNode();
-            nh.advertise(imu);
+            nh.advertise(imu_mpu);
+            nh.advertise(imu_fxos);
             nh.advertise(odo);
             nh_initialized = true;
          }
          else
          {
-            imu.publish(&IMU_Msg);
+            imu_mpu.publish(&IMU_Msg_MPU);
+            imu_fxos.publish(&IMU_Msg_FXOS);
             odo.publish(&Odo_Msg);
             nh.spinOnce();
          }
@@ -153,13 +163,14 @@ void Init_Behaviors_Task(void *pvParameters)
    My_MPU6050.Init(AFS_2G, GFS_250DPS);
 
    /* Initialize the 6-axis on board FXOS8700CQ */
-   My_FXOS8700CQ.Init();
+   My_FXOS8700CQ.Init(FXOS_2G);
 
    /* Initialize the Go To Point controller */
    GTP_Controller.Init(TOLERANCE, Kp, GTP_SPEED);
 
    /* Configure the different frame ids */
-   IMU_Msg.header.frame_id = "base_link";
+   IMU_Msg_MPU.header.frame_id = "base_link";
+   IMU_Msg_FXOS.header.frame_id = "base_link";
    Odo_Msg.header.frame_id = "base_link";
 
    if (pdPASS != xTaskCreate(Behaviors_Task, "Behaviors_Task", 4096, NULL, BEHAVIORS_TASK_PRIO, NULL))
