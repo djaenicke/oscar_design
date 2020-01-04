@@ -47,19 +47,36 @@ typedef enum
   FXOS_ACTIVE = 0x01
 } FXOS_Mode_T;
 
+typedef union
+{
+   struct {
+   uint8_t active:1;
+   uint8_t f_read:1;
+   uint8_t lnoise:1;
+   uint8_t odr:3;
+   uint8_t aslp_rate:2;
+   };
+   uint8_t byte;
+} CTRL_1_T;
+
 class FXOS8700CQ:I2C_FXOS
 {
 private:
    FXOS_Ascale_T a_scale;
    FXOS_Meas_Biases_T biases;
    FXOS_Meas_Scalings_T scalings;
+   uint16_t accel_sensitivity;
 
    fxos_handle_t FXOS_Handle = {0};
    fxos_config_t FXOS_Cfg    = {0};
 
    void Set_Mode(FXOS_Mode_T mode);
+   void Set_Ascale(void);
+   void Set_ODR(uint8_t odr);
+   void Enable_Reduced_Noise(void);
    void Set_Accel_Res(FXOS_Ascale_T ascale);
-   void Calibrate(FXOS_Ascale_T ascale);
+   void Calibrate(void);
+   CTRL_1_T Read_CTRL_REG1(void);
 
 public:
    void Init(FXOS_Ascale_T ascale);

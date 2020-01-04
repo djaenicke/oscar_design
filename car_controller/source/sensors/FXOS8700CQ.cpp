@@ -12,8 +12,13 @@
 #define Y 1
 #define Z 2
 #define G (9.81f)
+
 #define UINT14_MAX  (0x3FFF)
 #define NUM_ACCEL_BIAS_SAMPLES ((uint8_t)100)
+
+#define SENSITIVITY_2G 4096
+#define SENSITIVITY_4G 2048
+#define SENSITIVITY_8G 1024
 
 #define Normalize_14Bits(x) (((x) > (UINT14_MAX/2)) ? (x - UINT14_MAX):(x))
 #define Get_14bit_Signed_Val(msb, lsb) ((int16_t)(((uint16_t)((uint16_t)msb << 8) | (uint16_t)lsb) >> 2))
@@ -24,8 +29,6 @@ const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
 void FXOS8700CQ::Init(FXOS_Ascale_T ascale)
 {
    status_t result = kStatus_Fail;
-   uint8_t g_sensor_range = 0;
-
    a_scale = ascale;
 
    Init_I2C_If();
@@ -46,28 +49,15 @@ void FXOS8700CQ::Init(FXOS_Ascale_T ascale)
 
    if (result == kStatus_Success)
    {
-      /* Set sensor range */
+      Set_Ascale();
+      Set_ODR(4);
+      Enable_Reduced_Noise();
       Set_Mode(FXOS_STANDBY);
-      FXOS_WriteReg(&FXOS_Handle, XYZ_DATA_CFG_REG, (uint8_t) a_scale);
-
-      /* Get sensor range */
-      result = FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &g_sensor_range, 1);
+      FXOS_WriteReg(&FXOS_Handle, CTRL_REG2, 0x02); // High Resolution mode
       Set_Mode(FXOS_ACTIVE);
-
-      if (g_sensor_range != (uint8_t) a_scale)
-      {
-         assert(0);
-      }
-
-      if (result == kStatus_Success)
-      {
-         Set_Accel_Res((FXOS_Ascale_T) g_sensor_range);
-         Calibrate((FXOS_Ascale_T) g_sensor_range);
-      }
-
+      Calibrate();
    }
-
-   if (result != kStatus_Success)
+   else
    {
       PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
       assert(0);
@@ -79,18 +69,20 @@ void FXOS8700CQ::Set_Accel_Res(FXOS_Ascale_T ascale)
    switch (ascale)
    {
       case FXOS_2G:
-         scalings.accel = 0.000244 * G;
+         accel_sensitivity = SENSITIVITY_2G;
          break;
       case FXOS_4G:
-         scalings.accel = 0.000488 * G;
+         accel_sensitivity = SENSITIVITY_4G;
          break;
       case FXOS_8G:
-         scalings.accel = 0.000976 * G;
+         accel_sensitivity = SENSITIVITY_8G;
          break;
       default:
          assert(0);
          break;
    }
+
+   scalings.accel = (1.0/accel_sensitivity) * G;
 }
 
 void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
@@ -104,13 +96,13 @@ void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
 
       /* Get the accel data from the sensor data structure in 14 bit left format data */
       temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelXMSB, sensor_data.accelXLSB));
-      destination->ax = temp * scalings.accel;
+      destination->ax = (temp * scalings.accel) - biases.accel[X];
 
       temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelYMSB, sensor_data.accelYLSB));
-      destination->ay = temp * scalings.accel;
+      destination->ay = (temp * scalings.accel) - biases.accel[Y];
 
       temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelZMSB, sensor_data.accelZLSB));
-      destination->az = temp * scalings.accel;
+      destination->az = (temp * scalings.accel) - biases.accel[Z];
 
       destination->mx = Get_16bit_Signed_Val(sensor_data.magXMSB, sensor_data.magXLSB);
       destination->my = Get_16bit_Signed_Val(sensor_data.magYMSB, sensor_data.magYLSB);
@@ -122,36 +114,20 @@ void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
    }
 }
 
-void FXOS8700CQ::Calibrate(FXOS_Ascale_T ascale)
+void FXOS8700CQ::Calibrate(void)
 {
-   fxos_data_t sensor_data;
+   Sensor_Data_T sensor_data;
+   fxos_data_t sensor_data_raw;
    int32_t accel_bias[3] = {0, 0, 0};
-   uint8_t divider, temp_u8;
-
-   switch (ascale)
-   {
-      case FXOS_2G:
-         divider = 8;
-         break;
-      case FXOS_4G:
-         divider = 4;
-         break;
-      case FXOS_8G:
-         divider = 2;
-         break;
-      default:
-         assert(0);
-         break;
-   }
 
    for (uint8_t i=0; i<NUM_ACCEL_BIAS_SAMPLES; i++)
    {
-      FXOS_ReadSensorData(&FXOS_Handle, &sensor_data);
+      FXOS_ReadSensorData(&FXOS_Handle, &sensor_data_raw);
 
       /* Get the accel data from the sensor data structure in 14 bit left format data */
-      accel_bias[X] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelXMSB, sensor_data.accelXLSB));
-      accel_bias[Y] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelYMSB, sensor_data.accelYLSB));
-      accel_bias[Z] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelZMSB, sensor_data.accelZLSB));
+      accel_bias[X] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelXMSB, sensor_data_raw.accelXLSB));
+      accel_bias[Y] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelYMSB, sensor_data_raw.accelYLSB));
+      accel_bias[Z] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelZMSB, sensor_data_raw.accelZLSB));
 
       Delay(1);
    }
@@ -160,46 +136,87 @@ void FXOS8700CQ::Calibrate(FXOS_Ascale_T ascale)
    accel_bias[Y] /= NUM_ACCEL_BIAS_SAMPLES;
    accel_bias[Z] /= NUM_ACCEL_BIAS_SAMPLES;
 
+   sensor_data.ax = accel_bias[X] * scalings.accel;
+   sensor_data.ay = accel_bias[Y] * scalings.accel;
+   sensor_data.az = accel_bias[Z] * scalings.accel;
+
+   PRINTF("Biased accel measurements (X, Y, Z): %.2f, %.2f, %.2f\r\n", \
+          sensor_data.ax, sensor_data.ay, sensor_data.az);
+
+   biases.accel[X] = accel_bias[X] * scalings.accel;
+   biases.accel[Y] = accel_bias[Y] * scalings.accel;
+   biases.accel[Z] = (accel_bias[Z] * scalings.accel) - G;
+
+   Read_Data(&sensor_data);
+   PRINTF("Unbiased accel measurements (X, Y, Z): %.2f, %.2f, %.2f\r\n", \
+          sensor_data.ax, sensor_data.ay ,sensor_data.az);
+}
+
+void FXOS8700CQ::Set_ODR(uint8_t odr)
+{
+   CTRL_1_T desired_ctrl_reg1;
+
    Set_Mode(FXOS_STANDBY);
 
-   temp_u8 = (uint8_t)((-accel_bias[X])/divider);
-   FXOS_WriteReg(&FXOS_Handle, OFF_X_REG, temp_u8);
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.odr = odr;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
 
-   temp_u8 = (uint8_t)((-accel_bias[Y])/divider);
-   FXOS_WriteReg(&FXOS_Handle, OFF_Y_REG, temp_u8);
+   Set_Mode(FXOS_ACTIVE);
+}
 
-   temp_u8 = (uint8_t) (-1*((1/(scalings.accel/G)) - (accel_bias[Z]/divider)));
-   FXOS_WriteReg(&FXOS_Handle, OFF_Z_REG, temp_u8);
+void FXOS8700CQ::Enable_Reduced_Noise(void)
+{
+   CTRL_1_T desired_ctrl_reg1;
 
-   // Output scaled accelerometer biases for manual subtraction in the main program
-   biases.accel[X] = (float) accel_bias[X] * scalings.accel;
-   biases.accel[Y] = (float) accel_bias[Y] * scalings.accel;
-   biases.accel[Z] = G - ((float) accel_bias[Z] * scalings.accel);
+   Set_Mode(FXOS_STANDBY);
+
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.lnoise = 1;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
 
    Set_Mode(FXOS_ACTIVE);
 }
 
 void FXOS8700CQ::Set_Mode(FXOS_Mode_T mode)
 {
-   uint8_t desired_ctrl_reg1, current_ctrl_reg1;
+   CTRL_1_T desired_ctrl_reg1;
 
-   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &current_ctrl_reg1, 1);
-
-   switch (mode)
-   {
-      case FXOS_STANDBY:
-         desired_ctrl_reg1 = current_ctrl_reg1 & ~0x01;
-         break;
-      case FXOS_ACTIVE:
-         desired_ctrl_reg1 = current_ctrl_reg1 | 0x01;
-         break;
-   }
-
-   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1);
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.active = mode;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
 
    do
    {
       Delay(1);
-      FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &current_ctrl_reg1, 1);
-   } while (current_ctrl_reg1 != desired_ctrl_reg1);
+      FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   } while (mode != desired_ctrl_reg1.active);
+}
+
+void FXOS8700CQ::Set_Ascale(void)
+{
+   uint8_t g_sensor_range;
+
+   Set_Mode(FXOS_STANDBY);
+
+   FXOS_WriteReg(&FXOS_Handle, XYZ_DATA_CFG_REG, (uint8_t) a_scale);
+
+   do
+   {
+      Delay(1);
+      FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &g_sensor_range, 1);
+   } while (g_sensor_range != (uint8_t) a_scale);
+
+   Set_Accel_Res((FXOS_Ascale_T) g_sensor_range);
+
+   Set_Mode(FXOS_ACTIVE);
+}
+
+CTRL_1_T FXOS8700CQ::Read_CTRL_REG1(void)
+{
+   CTRL_1_T ctrl_reg1;
+
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &ctrl_reg1.byte, 1);
+
+   return(ctrl_reg1);
 }
