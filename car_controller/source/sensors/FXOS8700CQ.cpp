@@ -47,21 +47,15 @@ void FXOS8700CQ::Init(FXOS_Ascale_T ascale)
       }
    }
 
-   if (result == kStatus_Success)
-   {
-      Set_Ascale();
-      Set_ODR(4);
-      Enable_Reduced_Noise();
-      Set_Mode(FXOS_STANDBY);
-      FXOS_WriteReg(&FXOS_Handle, CTRL_REG2, 0x02); // High Resolution mode
-      Set_Mode(FXOS_ACTIVE);
-      Calibrate();
-   }
-   else
-   {
-      PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
-      assert(0);
-   }
+   assert(result == kStatus_Success);
+
+   Set_Ascale();
+   Set_ODR(FXOS_50HZ);
+   Enable_Reduced_Noise();
+   Set_Mode(FXOS_STANDBY);
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG2, 0x02); // High Resolution mode
+   Set_Mode(FXOS_ACTIVE);
+   Calibrate();
 }
 
 void FXOS8700CQ::Set_Accel_Res(FXOS_Ascale_T ascale)
@@ -116,7 +110,6 @@ void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
 
 void FXOS8700CQ::Calibrate(void)
 {
-   Sensor_Data_T sensor_data;
    fxos_data_t sensor_data_raw;
    int32_t accel_bias[3] = {0, 0, 0};
 
@@ -136,23 +129,12 @@ void FXOS8700CQ::Calibrate(void)
    accel_bias[Y] /= NUM_ACCEL_BIAS_SAMPLES;
    accel_bias[Z] /= NUM_ACCEL_BIAS_SAMPLES;
 
-   sensor_data.ax = accel_bias[X] * scalings.accel;
-   sensor_data.ay = accel_bias[Y] * scalings.accel;
-   sensor_data.az = accel_bias[Z] * scalings.accel;
-
-   PRINTF("Biased accel measurements (X, Y, Z): %.2f, %.2f, %.2f\r\n", \
-          sensor_data.ax, sensor_data.ay, sensor_data.az);
-
    biases.accel[X] = accel_bias[X] * scalings.accel;
    biases.accel[Y] = accel_bias[Y] * scalings.accel;
    biases.accel[Z] = (accel_bias[Z] * scalings.accel) - G;
-
-   Read_Data(&sensor_data);
-   PRINTF("Unbiased accel measurements (X, Y, Z): %.2f, %.2f, %.2f\r\n", \
-          sensor_data.ax, sensor_data.ay ,sensor_data.az);
 }
 
-void FXOS8700CQ::Set_ODR(uint8_t odr)
+void FXOS8700CQ::Set_ODR(ODR_Hybrid_T odr)
 {
    CTRL_1_T desired_ctrl_reg1;
 

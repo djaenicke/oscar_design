@@ -59,6 +59,17 @@ typedef union
    uint8_t byte;
 } CTRL_1_T;
 
+typedef enum {
+   FXOS_400HZ    = 0,
+   FXOS_200HZ    = 1,
+   FXOS_100HZ    = 2,
+   FXOS_50HZ     = 3,
+   FXOS_25HZ     = 4,
+   FXOS_6p25HZ   = 5,
+   FXOS_3p125HZ  = 6,
+   FXOS_0p7813HZ = 7,
+} ODR_Hybrid_T;
+
 class FXOS8700CQ:I2C_FXOS
 {
 private:
@@ -72,7 +83,7 @@ private:
 
    void Set_Mode(FXOS_Mode_T mode);
    void Set_Ascale(void);
-   void Set_ODR(uint8_t odr);
+   void Set_ODR(ODR_Hybrid_T odr);
    void Enable_Reduced_Noise(void);
    void Set_Accel_Res(FXOS_Ascale_T ascale);
    void Calibrate(void);

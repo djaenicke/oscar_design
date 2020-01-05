@@ -57,19 +57,16 @@ ros::Publisher imu_mpu("imu_data_mpu", &IMU_Msg_MPU);
 ros::Publisher imu_fxos("imu_data_fxos", &IMU_Msg_FXOS);
 ros::Publisher odo("odo_data", &Odo_Msg);
 
+static inline void Populate_IMU_Covariances(void);
 static void Behaviors_Task(void *pvParameters);
+static void Populate_Odo_Msg(void);
+static void Populate_IMU_Msgs(void);
+static void Publish_ROS_Topics(void);
+static inline void Run_GTP_Controller(void);
 
 void Behaviors_Task(void *pvParameters)
 {
    TickType_t xLastWakeTime;
-   static bool nh_initialized = false;
-
-   Wheel_Speeds_T wheel_ang_v = {0};
-   Accel_Data_T   accel_data  = {0};
-   Gyro_Data_T    gyro_data   = {0};
-   Sensor_Data_T  fxos_data   = {0};
-
-   float vr, vl = 0;
 
    xLastWakeTime = xTaskGetTickCount();
 
@@ -77,82 +74,11 @@ void Behaviors_Task(void *pvParameters)
    {
       vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(CYCLE_TIME*S_2_MS));
 
-      Measure_Wheel_Speeds();
-      Get_Wheel_Ang_Velocities(&wheel_ang_v);
-
-      /* Compute the robot's linear wheel velocities */
-      vr = wheel_ang_v.r * WHEEL_RADIUS;
-      vl = wheel_ang_v.l * WHEEL_RADIUS;
-
-      /* Update message time stamps */
-      Odo_Msg.header.stamp = nh.now();
-      IMU_Msg_MPU.header.stamp = Odo_Msg.header.stamp;
-      IMU_Msg_FXOS.header.stamp = Odo_Msg.header.stamp;
-
-      /* Compute the robot's linear velocity based on the wheel speeds */
-      Odo_Msg.twist.twist.linear.x = ((vr + vl)/2);
-
-      /* Compute the robot's angular velocity */
-      Odo_Msg.twist.twist.angular.z = ((vr - vl)/WHEEL_BASE);
-
-      My_MPU6050.Read_Accel_Data(&accel_data);
-      My_MPU6050.Read_Gyro_Data(&gyro_data);
-
-      IMU_Msg_MPU.header.stamp = nh.now();
-      IMU_Msg_MPU.linear_acceleration.x = accel_data.ax;
-      IMU_Msg_MPU.linear_acceleration.y = accel_data.ay;
-      IMU_Msg_MPU.linear_acceleration.z = accel_data.az;
-
-      IMU_Msg_MPU.angular_velocity.x = gyro_data.gx;
-      IMU_Msg_MPU.angular_velocity.y = gyro_data.gy;
-      IMU_Msg_MPU.angular_velocity.z = gyro_data.gz;
-
-      My_FXOS8700CQ.Read_Data(&fxos_data);
-      IMU_Msg_FXOS.linear_acceleration.x = fxos_data.ax;
-      IMU_Msg_FXOS.linear_acceleration.y = fxos_data.ay;
-      IMU_Msg_FXOS.linear_acceleration.z = fxos_data.az;
-
-      if (CONNECTED == Get_Network_Status())
-      {
-         if (!nh_initialized)
-         {
-            nh.initNode();
-            nh.advertise(imu_mpu);
-            nh.advertise(imu_fxos);
-            nh.advertise(odo);
-            nh_initialized = true;
-         }
-         else
-         {
-            imu_mpu.publish(&IMU_Msg_MPU);
-            imu_fxos.publish(&IMU_Msg_FXOS);
-            odo.publish(&Odo_Msg);
-            nh.spinOnce();
-         }
-      }
-
+      Populate_Odo_Msg();
+      Populate_IMU_Msgs();
+      Publish_ROS_Topics();
       Run_Object_Detection();
-
-      if (Auto_Mode_Active)
-      {
-         if (GTP_Controller.In_Route())
-         {
-            GTP_Controller.Execute();
-         }
-         else
-         {
-            if (Current_Waypoint < NUM_WAYPOINTS)
-            {
-               GTP_Controller.Update_Destination(&(Waypoints[Current_Waypoint]));
-               Current_Waypoint++;
-            }
-            else
-            {
-               Toggle_Autonomous_Mode();
-            }
-         }
-      }
-
+      Run_GTP_Controller();
       Run_Motor_Controls();
    }
 }
@@ -169,9 +95,11 @@ void Init_Behaviors_Task(void *pvParameters)
    GTP_Controller.Init(TOLERANCE, Kp, GTP_SPEED);
 
    /* Configure the different frame ids */
-   IMU_Msg_MPU.header.frame_id = "base_link";
-   IMU_Msg_FXOS.header.frame_id = "base_link";
-   Odo_Msg.header.frame_id = "base_link";
+   IMU_Msg_MPU.header.frame_id = "odom";
+   IMU_Msg_FXOS.header.frame_id = "odom";
+   Odo_Msg.header.frame_id = "odom";
+
+   Populate_IMU_Covariances();
 
    if (pdPASS != xTaskCreate(Behaviors_Task, "Behaviors_Task", 4096, NULL, BEHAVIORS_TASK_PRIO, NULL))
    {
@@ -202,4 +130,149 @@ void Get_Pose(Pose_T * dest)
    dest->x = (float) Odo_Msg.pose.pose.position.x;
    dest->y = (float) Odo_Msg.pose.pose.position.y;
    dest->theta = (float) Odo_Msg.pose.pose.orientation.w;
+}
+
+static inline void Populate_Covariances(void)
+{
+   /* Row major about x, y, z axes */
+   IMU_Msg_MPU.orientation_covariance[0] = -1; /* No orientation measurement available */
+
+   /* Row major about x, y, z axes */
+   IMU_Msg_MPU.angular_velocity_covariance[0] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[1] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[2] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[3] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[4] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[5] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[6] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[7] = 0;
+   IMU_Msg_MPU.angular_velocity_covariance[8] = 0;
+
+   /* Row major x, y z */
+   IMU_Msg_MPU.linear_acceleration_covariance[0] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[1] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[2] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[3] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[4] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[5] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[6] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[7] = 0;
+   IMU_Msg_MPU.linear_acceleration_covariance[8] = 0;
+
+   /* Row major about x, y, z axes */
+   IMU_Msg_FXOS.orientation_covariance[0] = -1; /* No orientation measurement available (yet) */
+
+   /* Row major about x, y, z axes */
+   IMU_Msg_FXOS.angular_velocity_covariance[0] = -1; /* No orientation measurement available */
+
+   /* Row major x, y z */
+   IMU_Msg_FXOS.linear_acceleration_covariance[0] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[1] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[2] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[3] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[4] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[5] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[6] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[7] = 0;
+   IMU_Msg_FXOS.linear_acceleration_covariance[8] = 0;
+
+   /* (x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis) */
+   //Odo_Msg.pose.covariance = TODO
+
+   /* (x, y, z, rotation about X axis, rotation about Y axis, rotation about Z axis) */
+   //Odo_Msg.twist.covariance = TODO
+}
+
+static void Populate_Odo_Msg(void)
+{
+   Wheel_Speeds_T wheel_ang_v = {0};
+   float vr, vl = 0;
+
+   Measure_Wheel_Speeds();
+   Get_Wheel_Ang_Velocities(&wheel_ang_v);
+
+   /* Compute the robot's linear wheel velocities */
+   vr = wheel_ang_v.r * WHEEL_RADIUS;
+   vl = wheel_ang_v.l * WHEEL_RADIUS;
+
+   /* Update message time stamps */
+   Odo_Msg.header.stamp = nh.now();
+
+   /* Compute the robot's linear velocity based on the wheel speeds */
+   Odo_Msg.twist.twist.linear.x = ((vr + vl)/2);
+
+   /* Compute the robot's angular velocity */
+   Odo_Msg.twist.twist.angular.z = ((vr - vl)/WHEEL_BASE);
+}
+
+static void Populate_IMU_Msgs(void)
+{
+   Accel_Data_T   accel_data  = {0};
+   Gyro_Data_T    gyro_data   = {0};
+   Sensor_Data_T  fxos_data   = {0};
+
+   IMU_Msg_MPU.header.stamp = nh.now();
+   IMU_Msg_FXOS.header.stamp = IMU_Msg_MPU.header.stamp;
+
+   My_MPU6050.Read_Accel_Data(&accel_data);
+   IMU_Msg_MPU.linear_acceleration.x = accel_data.ax;
+   IMU_Msg_MPU.linear_acceleration.y = accel_data.ay;
+   IMU_Msg_MPU.linear_acceleration.z = accel_data.az;
+
+   My_MPU6050.Read_Gyro_Data(&gyro_data);
+   IMU_Msg_MPU.angular_velocity.x = gyro_data.gx;
+   IMU_Msg_MPU.angular_velocity.y = gyro_data.gy;
+   IMU_Msg_MPU.angular_velocity.z = gyro_data.gz;
+
+   My_FXOS8700CQ.Read_Data(&fxos_data);
+   IMU_Msg_FXOS.linear_acceleration.x = fxos_data.ax;
+   IMU_Msg_FXOS.linear_acceleration.y = fxos_data.ay;
+   IMU_Msg_FXOS.linear_acceleration.z = fxos_data.az;
+}
+
+static inline void Run_GTP_Controller(void)
+{
+   if (Auto_Mode_Active)
+   {
+      if (GTP_Controller.In_Route())
+      {
+         GTP_Controller.Execute();
+      }
+      else
+      {
+         if (Current_Waypoint < NUM_WAYPOINTS)
+         {
+            GTP_Controller.Update_Destination(&(Waypoints[Current_Waypoint]));
+            Current_Waypoint++;
+         }
+         else
+         {
+            Toggle_Autonomous_Mode();
+         }
+      }
+   }
+}
+
+static void Publish_ROS_Topics(void)
+{
+   static bool nh_initialized = false;
+
+   if (CONNECTED == Get_Network_Status())
+   {
+      if (!nh_initialized)
+      {
+         nh.initNode();
+         nh.advertise(imu_mpu);
+         nh.advertise(imu_fxos);
+         nh.advertise(odo);
+         nh_initialized = true;
+      }
+      else
+      {
+         imu_mpu.publish(&IMU_Msg_MPU);
+         imu_fxos.publish(&IMU_Msg_FXOS);
+         odo.publish(&Odo_Msg);
+         nh.spinOnce();
+      }
+   }
 }

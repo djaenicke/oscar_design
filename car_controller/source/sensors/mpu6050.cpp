@@ -363,16 +363,16 @@ void MPU6050::Set_Gyro_Res(MPU6050_Gscale_T gscale)
       // 250 DPS (00), 500 DPS (01), 1000 DPS (10), and 2000 DPS  (11).
       // Here's a bit of an algorithm to calculate DPS/(ADC tick) based on that 2-bit value:
       case GFS_250DPS:
-         scalings.gyro = 250.0 / 32768.0;
+         scalings.gyro = 250.0 / 32768.0 * (M_PI/180);
          break;
       case GFS_500DPS:
-         scalings.gyro = 500.0 / 32768.0;
+         scalings.gyro = 500.0 / 32768.0 * (M_PI/180);
          break;
       case GFS_1000DPS:
-         scalings.gyro = 1000.0 / 32768.0;
+         scalings.gyro = 1000.0 / 32768.0 * (M_PI/180);
          break;
       case GFS_2000DPS:
-         scalings.gyro = 2000.0 / 32768.0;
+         scalings.gyro = 2000.0 / 32768.0 * (M_PI/180);
          break;
       default:
          assert(0);
