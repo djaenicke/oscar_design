@@ -6,182 +6,199 @@
  */
 
 #include "FXOS8700CQ.h"
-#include "fsl_i2c.h"
-#include "fsl_fxos.h"
-#include "fsl_port.h"
-#include "fsl_gpio.h"
 #include "fsl_debug_console.h"
-#include "clock_config.h"
 
-#define ACCEL_I2C_CLOCK_FREQ  CLOCK_GetFreq(I2C0_CLK_SRC)
-#define I2C_RELEASE_BUS_COUNT 100U
-#define I2C_RELEASE_SDA_PORT  PORTE
-#define I2C_RELEASE_SCL_PORT  PORTE
-#define I2C_RELEASE_SDA_GPIO  GPIOE
-#define I2C_RELEASE_SDA_PIN   25U
-#define I2C_RELEASE_SCL_GPIO  GPIOE
-#define I2C_RELEASE_SCL_PIN   24U
+#define X 0
+#define Y 1
+#define Z 2
+#define G (9.81f)
 
-static fxos_handle_t FXOS_Handle = {0};
-static fxos_config_t FXOS_Cfg    = {0};
-static const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
+#define UINT14_MAX  (0x3FFF)
+#define NUM_ACCEL_BIAS_SAMPLES ((uint8_t)100)
 
-static inline void I2C_Release_Bus(void);
-static void I2C_Release_Bus_Delay(void);
-static inline void I2C_Configure_Pins(void);
+#define SENSITIVITY_2G 4096
+#define SENSITIVITY_4G 2048
+#define SENSITIVITY_8G 1024
 
-status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff);
-status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
-                           uint8_t *rx_buff, uint8_t rx_buff_size);
+#define Normalize_14Bits(x) (((x) > (UINT14_MAX/2)) ? (x - UINT14_MAX):(x))
+#define Get_14bit_Signed_Val(msb, lsb) ((int16_t)(((uint16_t)((uint16_t)msb << 8) | (uint16_t)lsb) >> 2))
+#define Get_16bit_Signed_Val(msb, lsb) ((int16_t)(((uint16_t)((uint16_t)msb << 8) | (uint16_t)lsb)))
 
-void FXOS8700CQ::Init(void)
+const uint8_t FXOS_Dev_Addr[] = {0x1CU, 0x1DU, 0x1EU, 0x1FU};
+
+void FXOS8700CQ::Init(FXOS_Ascale_T ascale)
 {
-   i2c_master_config_t i2c_cfg = {0};
-   uint8_t array_addr_size     = 0;
-   status_t result             = kStatus_Fail;
+   status_t result = kStatus_Fail;
+   a_scale = ascale;
 
-   I2C_Release_Bus();
-   I2C_Configure_Pins();
-   I2C_MasterGetDefaultConfig(&i2c_cfg);
-   I2C_MasterInit(I2C0, &i2c_cfg, ACCEL_I2C_CLOCK_FREQ);
+   Init_I2C_If();
 
    FXOS_Cfg.I2C_SendFunc    = I2C_Tx;
    FXOS_Cfg.I2C_ReceiveFunc = I2C_Rx;
 
-   array_addr_size = sizeof(FXOS_Dev_Addr) / sizeof(FXOS_Dev_Addr[0]);
-   for (uint8_t i = 0; i < array_addr_size; i++)
+   for (uint8_t i = 0; i < sizeof(FXOS_Dev_Addr) / sizeof(FXOS_Dev_Addr[0]); i++)
    {
       FXOS_Cfg.slaveAddress = FXOS_Dev_Addr[i];
       result = FXOS_Init(&FXOS_Handle, &FXOS_Cfg);
+
       if (kStatus_Success == result)
       {
          break;
       }
    }
 
-   if (result != kStatus_Success)
+   assert(result == kStatus_Success);
+
+   Set_Ascale();
+   Set_ODR(FXOS_50HZ);
+   Enable_Reduced_Noise();
+   Set_Mode(FXOS_STANDBY);
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG2, 0x02); // High Resolution mode
+   Set_Mode(FXOS_ACTIVE);
+   Calibrate();
+}
+
+void FXOS8700CQ::Set_Accel_Res(FXOS_Ascale_T ascale)
+{
+   switch (ascale)
    {
-      PRINTF("\r\nFXOS8700CQ initialization failed!\r\n");
+      case FXOS_2G:
+         accel_sensitivity = SENSITIVITY_2G;
+         break;
+      case FXOS_4G:
+         accel_sensitivity = SENSITIVITY_4G;
+         break;
+      case FXOS_8G:
+         accel_sensitivity = SENSITIVITY_8G;
+         break;
+      default:
+         assert(0);
+         break;
+   }
+
+   scalings.accel = (1.0/accel_sensitivity) * G;
+}
+
+void FXOS8700CQ::Read_Data(Sensor_Data_T * destination)
+{
+   fxos_data_t sensor_data;
+   int16_t temp;
+
+   if (kStatus_Success == FXOS_ReadSensorData(&FXOS_Handle, &sensor_data))
+   {
+      destination->data_valid = true;
+
+      /* Get the accel data from the sensor data structure in 14 bit left format data */
+      temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelXMSB, sensor_data.accelXLSB));
+      destination->ax = (temp * scalings.accel) - biases.accel[X];
+
+      temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelYMSB, sensor_data.accelYLSB));
+      destination->ay = (temp * scalings.accel) - biases.accel[Y];
+
+      temp = Normalize_14Bits(Get_14bit_Signed_Val(sensor_data.accelZMSB, sensor_data.accelZLSB));
+      destination->az = (temp * scalings.accel) - biases.accel[Z];
+
+      destination->mx = Get_16bit_Signed_Val(sensor_data.magXMSB, sensor_data.magXLSB);
+      destination->my = Get_16bit_Signed_Val(sensor_data.magYMSB, sensor_data.magYLSB);
+      destination->mz = Get_16bit_Signed_Val(sensor_data.magZMSB, sensor_data.magZLSB);
+   }
+   else
+   {
+      destination->data_valid = false;
    }
 }
 
-static void I2C_Release_Bus_Delay(void)
+void FXOS8700CQ::Calibrate(void)
 {
-   uint32_t i = 0;
-   for (i = 0; i < I2C_RELEASE_BUS_COUNT; i++)
+   fxos_data_t sensor_data_raw;
+   int32_t accel_bias[3] = {0, 0, 0};
+
+   for (uint8_t i=0; i<NUM_ACCEL_BIAS_SAMPLES; i++)
    {
-      __NOP();
-   }
-}
+      FXOS_ReadSensorData(&FXOS_Handle, &sensor_data_raw);
 
-static inline void I2C_Release_Bus(void)
-{
-   uint8_t i = 0;
+      /* Get the accel data from the sensor data structure in 14 bit left format data */
+      accel_bias[X] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelXMSB, sensor_data_raw.accelXLSB));
+      accel_bias[Y] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelYMSB, sensor_data_raw.accelYLSB));
+      accel_bias[Z] += Normalize_14Bits(Get_14bit_Signed_Val(sensor_data_raw.accelZMSB, sensor_data_raw.accelZLSB));
 
-   gpio_pin_config_t pin_config;
-   port_pin_config_t i2c_pin_config = {0};
-
-   /* Config pin mux as gpio */
-   i2c_pin_config.pullSelect = kPORT_PullUp;
-   i2c_pin_config.mux        = kPORT_MuxAsGpio;
-
-   pin_config.pinDirection = kGPIO_DigitalOutput;
-   pin_config.outputLogic  = 1U;
-
-   PORT_SetPinConfig(I2C_RELEASE_SCL_PORT, I2C_RELEASE_SCL_PIN, &i2c_pin_config);
-   PORT_SetPinConfig(I2C_RELEASE_SDA_PORT, I2C_RELEASE_SDA_PIN, &i2c_pin_config);
-
-   GPIO_PinInit(I2C_RELEASE_SCL_GPIO, I2C_RELEASE_SCL_PIN, &pin_config);
-   GPIO_PinInit(I2C_RELEASE_SDA_GPIO, I2C_RELEASE_SDA_PIN, &pin_config);
-
-   /* Drive SDA low first to simulate a start */
-   GPIO_PinWrite(I2C_RELEASE_SDA_GPIO, I2C_RELEASE_SDA_PIN, 0U);
-   I2C_Release_Bus_Delay();
-
-   /* Send 9 pulses on SCL and keep SDA high */
-   for (i = 0; i < 9; i++)
-   {
-     GPIO_PinWrite(I2C_RELEASE_SCL_GPIO, I2C_RELEASE_SCL_PIN, 0U);
-     I2C_Release_Bus_Delay();
-
-     GPIO_PinWrite(I2C_RELEASE_SDA_GPIO, I2C_RELEASE_SDA_PIN, 1U);
-     I2C_Release_Bus_Delay();
-
-     GPIO_PinWrite(I2C_RELEASE_SCL_GPIO, I2C_RELEASE_SCL_PIN, 1U);
-     I2C_Release_Bus_Delay();
-     I2C_Release_Bus_Delay();
+      Delay(1);
    }
 
-   /* Send stop */
-   GPIO_PinWrite(I2C_RELEASE_SCL_GPIO, I2C_RELEASE_SCL_PIN, 0U);
-   I2C_Release_Bus_Delay();
+   accel_bias[X] /= NUM_ACCEL_BIAS_SAMPLES;
+   accel_bias[Y] /= NUM_ACCEL_BIAS_SAMPLES;
+   accel_bias[Z] /= NUM_ACCEL_BIAS_SAMPLES;
 
-   GPIO_PinWrite(I2C_RELEASE_SDA_GPIO, I2C_RELEASE_SDA_PIN, 0U);
-   I2C_Release_Bus_Delay();
-
-   GPIO_PinWrite(I2C_RELEASE_SCL_GPIO, I2C_RELEASE_SCL_PIN, 1U);
-   I2C_Release_Bus_Delay();
-
-   GPIO_PinWrite(I2C_RELEASE_SDA_GPIO, I2C_RELEASE_SDA_PIN, 1U);
-   I2C_Release_Bus_Delay();
+   biases.accel[X] = accel_bias[X] * scalings.accel;
+   biases.accel[Y] = accel_bias[Y] * scalings.accel;
+   biases.accel[Z] = (accel_bias[Z] * scalings.accel) - G;
 }
 
-static inline void I2C_Configure_Pins(void)
+void FXOS8700CQ::Set_ODR(ODR_Hybrid_T odr)
 {
-   /* IMU pin configurations */
-   const port_pin_config_t porte24_pin31_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainEnable,                                   /* Open drain is enabled */
-     kPORT_LowDriveStrength,                                  /* Low drive strength is configured */
-     kPORT_MuxAlt5,                                           /* Pin is configured as I2C0_SCL */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 24, &porte24_pin31_config); /* PORTE24 (pin 31) is configured as I2C0_SCL */
-   const port_pin_config_t porte25_pin32_config = {
-     kPORT_PullUp,                                            /* Internal pull-up resistor is enabled */
-     kPORT_FastSlewRate,                                      /* Fast slew rate is configured */
-     kPORT_PassiveFilterDisable,                              /* Passive filter is disabled */
-     kPORT_OpenDrainEnable,                                   /* Open drain is enabled */
-     kPORT_LowDriveStrength,                                  /* Low drive strength is configured */
-     kPORT_MuxAlt5,                                           /* Pin is configured as I2C0_SDA */
-     kPORT_UnlockRegister                                     /* Pin Control Register fields [15:0] are not locked */
-   };
-   PORT_SetPinConfig(PORTE, 25, &porte25_pin32_config); /* PORTE25 (pin 32) is configured as I2C0_SDA */
+   CTRL_1_T desired_ctrl_reg1;
+
+   Set_Mode(FXOS_STANDBY);
+
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.odr = odr;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
+
+   Set_Mode(FXOS_ACTIVE);
 }
 
-status_t I2C_Tx(uint8_t device_addr, uint32_t sub_addr, uint8_t sub_addr_size, uint32_t tx_buff)
+void FXOS8700CQ::Enable_Reduced_Noise(void)
 {
-    uint8_t data = (uint8_t)tx_buff;
-    i2c_master_transfer_t masterXfer;
+   CTRL_1_T desired_ctrl_reg1;
 
-    /* Prepare transfer structure. */
-    masterXfer.slaveAddress   = device_addr;
-    masterXfer.direction      = kI2C_Write;
-    masterXfer.subaddress     = sub_addr;
-    masterXfer.subaddressSize = sub_addr_size;
-    masterXfer.data           = &data;
-    masterXfer.dataSize       = 1;
-    masterXfer.flags          = kI2C_TransferDefaultFlag;
+   Set_Mode(FXOS_STANDBY);
 
-    return I2C_MasterTransferBlocking(I2C0, &masterXfer);
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.lnoise = 1;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
+
+   Set_Mode(FXOS_ACTIVE);
 }
 
-status_t I2C_Rx(uint8_t dev_addr, uint32_t sub_addr, uint8_t sub_addr_size, \
-                    uint8_t *rx_buff, uint8_t rx_buff_size)
+void FXOS8700CQ::Set_Mode(FXOS_Mode_T mode)
 {
-   i2c_master_transfer_t master_xfer;
+   CTRL_1_T desired_ctrl_reg1;
 
-   /* Prepare transfer structure. */
-   master_xfer.slaveAddress   = dev_addr;
-   master_xfer.subaddress     = sub_addr;
-   master_xfer.subaddressSize = sub_addr_size;
-   master_xfer.data           = rx_buff;
-   master_xfer.dataSize       = rx_buff_size;
-   master_xfer.direction      = kI2C_Read;
-   master_xfer.flags          = kI2C_TransferDefaultFlag;
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   desired_ctrl_reg1.active = mode;
+   FXOS_WriteReg(&FXOS_Handle, CTRL_REG1, desired_ctrl_reg1.byte);
 
-   return I2C_MasterTransferBlocking(I2C0, &master_xfer);
+   do
+   {
+      Delay(1);
+      FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &desired_ctrl_reg1.byte, 1);
+   } while (mode != desired_ctrl_reg1.active);
 }
 
+void FXOS8700CQ::Set_Ascale(void)
+{
+   uint8_t g_sensor_range;
+
+   Set_Mode(FXOS_STANDBY);
+
+   FXOS_WriteReg(&FXOS_Handle, XYZ_DATA_CFG_REG, (uint8_t) a_scale);
+
+   do
+   {
+      Delay(1);
+      FXOS_ReadReg(&FXOS_Handle, XYZ_DATA_CFG_REG, &g_sensor_range, 1);
+   } while (g_sensor_range != (uint8_t) a_scale);
+
+   Set_Accel_Res((FXOS_Ascale_T) g_sensor_range);
+
+   Set_Mode(FXOS_ACTIVE);
+}
+
+CTRL_1_T FXOS8700CQ::Read_CTRL_REG1(void)
+{
+   CTRL_1_T ctrl_reg1;
+
+   FXOS_ReadReg(&FXOS_Handle, CTRL_REG1, &ctrl_reg1.byte, 1);
+
+   return(ctrl_reg1);
+}
