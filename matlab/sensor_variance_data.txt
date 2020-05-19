@@ -1,0 +1,10 @@
+MPU6050 Variance Data:
+ax sigma^2	ay sigma^2	az sigma^2
+0.000191916	0.000207292	0.000362547
+
+FXOS8700 Variance Data:
+ax sigma^2	ay sigma^2	az sigma^2
+2.71782E-05	4.62584E-05	5.24436E-05
+
+gx sigma^2	gy sigma^2	gz sigma^2
+9.9957E-07	6.52032E-06	2.95646E-05
